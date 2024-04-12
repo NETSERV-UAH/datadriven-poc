@@ -1,0 +1,49 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+  # Define las configuraciones para FactoryFloor
+  config.vm.define "FactoryFloor" do |factory_config|
+    factory_config.vm.box = "ubuntu/focal64"
+    factory_config.vm.hostname = 'factory'
+    factory_config.vm.network "private_network", ip: "192.168.56.11"
+    factory_config.vm.provider "virtualbox" do |vb|
+      vb.memory = 2048 # 2GB de RAM
+      vb.cpus = 2      # 2 cores
+    end
+    # Ejecutar el script mininet-wifi/install.sh en FactoryFloor
+    factory_config.vm.provision "shell", path: "mininet-wifi/install.sh"
+    factory_config.vm.provision "file", source: "mininet-wifi/topo.py", destination: "/home/vagrant/topo.py"
+    factory_config.vm.provision "shell", path: "iiot_sensor/install.sh"
+    factory_config.vm.provision "file", source: "iiot_sensor/iiot_sensor.py", destination: "/home/vagrant/iiot_sensor.py"
+    factory_config.vm.provision "file", source: "iiot_sensor/temperatures.pkl", destination: "/home/vagrant/temperatures.pkl"
+  end
+
+  # Define las configuraciones para Edge
+  config.vm.define "Edge" do |edge_config|
+    edge_config.vm.box = "ubuntu/focal64"
+    edge_config.vm.hostname = 'edge'
+    edge_config.vm.network "private_network", ip: "192.168.56.12"
+    edge_config.vm.provider "virtualbox" do |vb|
+      vb.memory = 2048 # 2GB de RAM
+      vb.cpus = 2      # 2 cores
+    end
+    # Ejecutar el script ryu/install.sh en Edge y el de InfluxDB
+    edge_config.vm.provision "shell", path: "ryu/install.sh"
+    edge_config.vm.provision "shell", path: "influxdb/install.sh"
+    edge_config.vm.provision "shell", path: "influxdb/config.sh"
+  end
+
+  # Define las configuraciones para Cloud
+  config.vm.define "Cloud" do |cloud_config|
+    cloud_config.vm.box = "ubuntu/focal64"
+    cloud_config.vm.hostname = 'cloud'
+    cloud_config.vm.network "private_network", ip: "192.168.56.13"
+    cloud_config.vm.provider "virtualbox" do |vb|
+      vb.memory = 2048 # 2GB de RAM
+      vb.cpus = 2      # 2 cores
+    end
+  end
+
+end
