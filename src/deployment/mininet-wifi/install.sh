@@ -18,4 +18,4 @@ sudo ./mininet-wifi/util/install.sh -3Wlfnv
 
 # Para esta versión que intala vagrant de ubuntu el kernel que trae
 # no lleva el modulo mac80211_hwsim por tanto hay que añadirlo
-sudo apt-get install -y linux-modules-extra-5.4.0-113-generic
+sudo apt-get install -y linux-modules-extra-$(uname -r)
