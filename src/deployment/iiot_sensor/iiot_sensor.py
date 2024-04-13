@@ -2,7 +2,9 @@
 
 import uuid, pickle
 import numpy as np
+#import pandas as pd
 import time
+import sys
 import requests
 from datetime import datetime
 
@@ -42,10 +44,7 @@ class IIoT_Sensor(object):
 
     def init_temperature(self):
 
-        with open(self.temperature_path, 'rb') as f:
-            temp_exterior, temp_interior = pickle.load(f)
-
-            return np.random.choice(temp_interior, size=1, replace=True)[0] if self.location else np.random.choice(temp_exterior, size=1, replace=True)[0]
+        return np.random.randint(29,31) if self.location else np.random.randint(35,42)
 
 
     def update_temperature(self, new_temperature):
@@ -163,4 +162,4 @@ class IIoT_Sensor(object):
 
 
 if __name__ == "__main__":
-    sensor1 = IIoT_Sensor("sensor1", False, 'temperatures.pkl', 2.0)
+    sensor1 = IIoT_Sensor(sys.argv[1], False, 'temperatures.pkl', 2.0)

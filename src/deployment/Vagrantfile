@@ -3,6 +3,10 @@
 
 Vagrant.configure("2") do |config|
 
+  # Habilitar el x11
+  config.ssh.forward_agent = true
+  config.ssh.forward_x11 = true
+
   # Define las configuraciones para FactoryFloor
   config.vm.define "FactoryFloor" do |factory_config|
     factory_config.vm.box = "ubuntu/focal64"
@@ -17,7 +21,6 @@ Vagrant.configure("2") do |config|
     factory_config.vm.provision "file", source: "mininet-wifi/topo.py", destination: "/home/vagrant/topo.py"
     factory_config.vm.provision "shell", path: "iiot_sensor/install.sh"
     factory_config.vm.provision "file", source: "iiot_sensor/iiot_sensor.py", destination: "/home/vagrant/iiot_sensor.py"
-    factory_config.vm.provision "file", source: "iiot_sensor/temperatures.pkl", destination: "/home/vagrant/temperatures.pkl"
   end
 
   # Define las configuraciones para Edge
