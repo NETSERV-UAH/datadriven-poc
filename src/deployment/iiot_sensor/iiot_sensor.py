@@ -35,8 +35,8 @@ class IIoT_Sensor(object):
         self.datetime = datetime.now()
         self.temperature_alert = False
         self.INFLUX_URL_API = "http://192.168.56.12:8086/api/v2"
-        self.INFLUX_ORG_ID = "0755805d06f0351d"
-        self.INFLUX_BUCKET = "c167fbe68db28a6f"
+        self.INFLUX_ORG_ID = ""
+        self.INFLUX_BUCKET = ""
         self.INFLUX_TOKEN = "3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA=="
         self.SENSOR_TOKEN = ""
         self.run()
@@ -111,6 +111,56 @@ class IIoT_Sensor(object):
         self.SENSOR_TOKEN = parsed_response["token"]
 
 
+
+    def oauth_get_INFLUX_ORG_ID(self):
+
+        # Define los HEADERS de la peti
+        headers = {
+            "Authorization": f"Token {self.INFLUX_TOKEN}",
+            "Content-type": "application/json"
+        }
+
+         # Define los datos 
+        data = {
+            "name": "UAH"
+        }
+
+        # Realiza la solicitud POST
+        url = self.INFLUX_URL_API + "/orgs"
+        response = requests.get(url, headers=headers, json=data)
+
+        # Parsea la respuesta JSON
+        parsed_response = response.json()
+
+        # Guardamos el token dado
+        self.INFLUX_ORG_ID = parsed_response["orgs"][0]["id"]
+
+
+    def oauth_get_INFLUX_BUCKET(self):
+
+        # Define los HEADERS de la peti
+        headers = {
+            "Authorization": f"Token {self.INFLUX_TOKEN}",
+            "Content-type": "application/json"
+        }
+
+         # Define los datos 
+        data = {
+            "org": "UAH",
+            "name": "iiot_data"
+        }
+
+        # Realiza la solicitud POST
+        url = self.INFLUX_URL_API + "/buckets"
+        response = requests.get(url, headers=headers, json=data)
+
+        # Parsea la respuesta JSON
+        parsed_response = response.json()
+
+        # Guardamos el token dado
+        self.INFLUX_BUCKET = parsed_response["buckets"][2]["id"]
+
+
     def simulate_temperature_variation(self, time_interval, previous_temperature):
         """
         Simulates realistic temperature variation based on time interval and location,
@@ -141,6 +191,8 @@ class IIoT_Sensor(object):
         previous_temperature = self.temperature
         
         # Oauth process
+        self.oauth_get_INFLUX_ORG_ID()
+        self.oauth_get_INFLUX_BUCKET()
         self.oauth_get_token()
 
         while(True):
