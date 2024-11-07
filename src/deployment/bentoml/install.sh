@@ -23,4 +23,4 @@ export PATH=$PATH:~/.local/bin
 python3.8 train.py
 
 # Start the service.
-bentoml serve -p3001 .
+bentoml serve -p3001 . &
