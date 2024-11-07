@@ -16,7 +16,7 @@ sudo apt-get update
 $INSTALL adduser libfontconfig1 musl
 
 # Download the `*.deb` packaging Grafana.
-wget https://dl.grafana.com/oss/release/grafana_11.3.0_amd64.deb
+wget -q https://dl.grafana.com/oss/release/grafana_11.3.0_amd64.deb
 
 # Install it.
 sudo dpkg -i grafana_11.3.0_amd64.deb
