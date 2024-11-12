@@ -24,3 +24,4 @@ cd ryu
 sudo pip3 install -r tools/pip-requires -r tools/optional-requires \
     -r tools/test-requires
 sudo python3 setup.py install
+sudo pip3 install webob>=1.2 eventlet==0.33.3 msgpack>=0.4.0 netaddr oslo.config>=2.5.0 ovs>=2.6.0 packaging==20.9 routes tinyrpc==1.0.4
