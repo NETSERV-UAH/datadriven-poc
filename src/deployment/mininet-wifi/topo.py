@@ -32,8 +32,8 @@ def scenario_basic():
     sta3 = net.addStation('sta3', mac='00:00:00:00:01:03', ip='10.0.0.3/8', position='90,30,0')
 
     info("*** Configuring nodes\n")
-    net.addNAT().configDefault()
     net.configureNodes()
+    net.addNAT().configDefault()
     
     info('*** Add links ***\n')
     net.addLink(sta1, ap1)
@@ -60,7 +60,7 @@ def scenario_basic():
     info('*** Start the IIoT Sensors ***\n')
     for sta in net.stations:
         sta.cmd('sudo ip route add default via 10.0.0.4')
-        sta.cmd(f'sudo python3 iiot_sensor.py sensor-{sta.name}')
+        sta.cmd(f'python3 iiot_sensor.py sensor-{sta.name} > {sta.name}.log & disown')
 
     info('*** RUN Mininet-Wifis CLI ***\n')
     CLI(net)

@@ -67,6 +67,7 @@ Vagrant.configure("2") do |config|
       vb.cpus = 2      # 2 cores
     end
     # Ejecutar el script grafana/install.sh en Cloud y el de BentoML
+    cloud_config.vm.provision "file", source: "grafana/influxdb_datasource.yaml", destination: "/home/vagrant/grafana/influxdb_datasource.yaml"
     cloud_config.vm.provision "shell", path: "grafana/install.sh"
     cloud_config.vm.provision "file", source: "bentoml/service.py", destination: "/home/vagrant/service.py"
     cloud_config.vm.provision "file", source: "bentoml/train.py", destination: "/home/vagrant/train.py"

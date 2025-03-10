@@ -21,6 +21,9 @@ wget -q https://dl.grafana.com/oss/release/grafana_11.3.0_amd64.deb
 # Install it.
 sudo dpkg -i grafana_11.3.0_amd64.deb
 
+# Add provisioning file
+sudo mv /home/vagrant/grafana/influxdb_datasource.yaml /etc/grafana/provisioning/datasources/influxdb_datasource.yaml
+
 # Start the service (it's stopped by default).
 sudo systemctl start grafana-server
 
