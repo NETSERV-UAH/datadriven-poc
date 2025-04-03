@@ -15,3 +15,7 @@ sudo dpkg -i influxdb2_2.7.5-1_amd64.deb
 
 # Start the InfluxDB service
 sudo service influxdb start
+
+# Install influxdb_client library for python. 
+# Required for integration of ryu with influxdb
+pip install influxdb-client
