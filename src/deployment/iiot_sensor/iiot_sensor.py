@@ -82,7 +82,7 @@ class IIoT_Sensor(object):
             "Accept": "application/json"
         }
 
-        data = f"tempSensors,sensor_name={self.name},sensor_id={self.uuid} temp={self.temperature} {time.time_ns()}"
+        data = f"tempSensors,sensor_name={self.name},sensor_id={self.uuid},location={int(self.location)} temp={self.temperature} {time.time_ns()}"
 
         # Realiza la solicitud POST
         url = self.INFLUX_URL_API + f"/write?org={self.INFLUX_ORG_ID}&bucket={self.INFLUX_BUCKET}&precision=ns"

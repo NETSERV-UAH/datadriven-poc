@@ -55,6 +55,7 @@ Vagrant.configure("2") do |config|
     edge_config.vm.provision "shell", path: "ryu/install.sh"
     edge_config.vm.provision "shell", path: "influxdb/install.sh"
     edge_config.vm.provision "shell", path: "influxdb/config.sh"
+    edge_config.vm.provision"file", source: "ryu/simple_switch_modificado.py", destination: "/home/vagrant/simple_switch_modificado.py"
   end
 
   # Define las configuraciones para Cloud
