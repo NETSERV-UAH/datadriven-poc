@@ -39,7 +39,29 @@ class IIoT_Sensor(object):
         self.INFLUX_BUCKET = ""
         self.INFLUX_TOKEN = "3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA=="
         self.SENSOR_TOKEN = ""
+
+        # Verifica la conectividad antes de continuar
+        if not self.check_connectivity():
+            print(f"{Color.RED}[ERROR]{Color.END} No connectivity to InfluxDB API ({self.INFLUX_URL_API}). Exiting.")
+            sys.exit(1)
+
         self.run()
+
+    def check_connectivity(self, timeout=20):
+        """Check if the API is reachable before proceeding with OAuth."""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                response = requests.get("http://192.168.56.12:8086" + "/health", timeout=5)
+                if response.status_code == 200:
+                    print(f"{Color.GREEN}[INFO]{Color.END} Connectivity to InfluxDB API verified.")
+                    return True
+                else:
+                    print(f"{Color.YELLOW}[WARNING]{Color.END} InfluxDB API returned status {response.status_code}. Retrying...")
+            except requests.exceptions.RequestException as e:
+                print(f"{Color.RED}[ERROR]{Color.END} Unable to reach InfluxDB API: {e}. Retrying...")
+            time.sleep(2)
+        return False
 
 
     def init_temperature(self):

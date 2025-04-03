@@ -60,7 +60,7 @@ def scenario_basic():
     info('*** Start the IIoT Sensors ***\n')
     for sta in net.stations:
         sta.cmd('sudo ip route add default via 10.0.0.4')
-        sta.cmd(f'sleep 10; python3 iiot_sensor.py sensor-{sta.name} > {sta.name}.log & disown')
+        sta.cmd(f'python3 iiot_sensor.py sensor-{sta.name} > {sta.name}.log & disown')
 
     info('*** RUN Mininet-Wifis CLI ***\n')
     CLI(net)
