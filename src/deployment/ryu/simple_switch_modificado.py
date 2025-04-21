@@ -36,8 +36,8 @@ INFLUXDB_BUCKET = "iiot_data"
 
 
 # InfluxDB data
-DATA_RANGE = "-10m"
-DATA_WINDOW = "10m"
+DATA_RANGE = "-1m"
+DATA_WINDOW = "1m"
 DATA_MEASUREMENT = "tempSensors"
 DATA_FIELD = "temp"
 DATA_FUNCTION = "mean"
@@ -55,6 +55,8 @@ from(bucket: "{INFLUXDB_BUCKET}")
 BENTO_URL = "http://192.168.56.13:3001/predict"
 BENTO_HEADERS = {"content-type": "application/json"}
 
+mac_sensors = {"00:00:00:00:01:01": "sensor-sta1", "00:00:00:00:01:02": "sensor-sta2", "00:00:00:00:01:03": "sensor-sta3"}
+
 class SimpleSwitch13(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
@@ -64,9 +66,6 @@ class SimpleSwitch13(app_manager.RyuApp):
         # Influxdb
         self.client_influxdb = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
         self.influxdb_query_api = self.client_influxdb.query_api()
-
-        # Bentoml
-        #self.client_bentoml = bentoml.SyncHTTPClient('http://192.168.56.13:3001')
 
         self.mac_to_port = {}
 
@@ -139,11 +138,18 @@ class SimpleSwitch13(app_manager.RyuApp):
             out_port = ofproto.OFPP_FLOOD
 
         actions = [parser.OFPActionOutput(out_port)]
-
-        # Query influxdb for sensors state (temperature mean)
-        sensors_value = self.query_influxdb()
-        # Query bentoml for infer actions
-        sensors_response = self.query_bentoml(sensors_value)
+        if src in mac_sensors.keys():
+            self.logger.info(f"IIOT packet found in {src} -> {dst} in port {in_port}")
+            # Query influxdb for sensors state (temperature mean)
+            sensors_value = self.query_influxdb()
+            if sensors_value:
+                # Query bentoml for infer actions
+                sensors_response = self.query_bentoml(sensors_value)
+                if sensors_response[mac_sensors[src]]["bentoml_response"] == '1':
+                    actions = []
+                    self.logger.info(f"{sensors_response[mac_sensors[src]]} packet dropped since {sensors_response[mac_sensors[src]]['bentoml_response']} received")
+            else:
+                self.logger.info(f"Influxdb database still empty: {sensors_value}")
 
         # install a flow to avoid packet_in next time
         if out_port != ofproto.OFPP_FLOOD:
@@ -174,8 +180,8 @@ class SimpleSwitch13(app_manager.RyuApp):
         except Exception as e:
             self.logger.error(f"Error en la recepción de la query: {e}")
 
-        #sensors = {record.values.get("sensor_id"): {"name": record.values.get('sensor_name'), "temp": record.get_value(), "month":record.get_time(), } for table in result for record in table}
-        sensors = {record.values.get("sensor_id"): {"name": record.values.get('sensor_name'), "temp": record.get_value(), "month":int(record.get_time().strftime('%m')), "location": record.values.get('location')} for table in result for record in table}
+        #sensors = {record.values.get("sensor_id"): {"name": record.values.get('sensor_name'), "temp": record.get_value(), "month":int(record.get_time().strftime('%m')), "location": record.values.get('location')} for table in result for record in table}
+        sensors = {record.values.get("sensor_name"): {"name": record.values.get('sensor_name'), "temp": record.get_value(), "month":int(record.get_time().strftime('%m')), "location": record.values.get('location')} for table in result for record in table}
 
         self.logger.info(f"Sensors state: {sensors}")
         return sensors
@@ -186,7 +192,6 @@ class SimpleSwitch13(app_manager.RyuApp):
         """
         
         for sensor_info in sensors_value.values():
-            #json_query = {"temp": sensor_info['temp'], "out/in_encoded": 0, "Month": int(sensor_info['month'].strftime('%m'))}
             json_query = {"temp": sensor_info['temp'], "out/in_encoded": sensor_info['location'], "Month": sensor_info['month']}
             self.logger.info(f"Sensor {sensor_info['name']}: {json_query}")
             
