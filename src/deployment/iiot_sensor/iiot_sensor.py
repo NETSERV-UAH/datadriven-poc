@@ -236,4 +236,5 @@ class IIoT_Sensor(object):
 
 
 if __name__ == "__main__":
-    sensor1 = IIoT_Sensor(sys.argv[1], False, 'temperatures.pkl', 2.0)
+    #sensor1 = IIoT_Sensor(sys.argv[1], False, 'temperatures.pkl', 2.0)
+    sensor1 = IIoT_Sensor(sys.argv[1], int(sys.argv[2]) if len(sys.argv) >= 3 else False, 'temperatures.pkl', 2.0)

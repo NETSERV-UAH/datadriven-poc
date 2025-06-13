@@ -21,8 +21,12 @@ wget -q https://dl.grafana.com/oss/release/grafana_11.3.0_amd64.deb
 # Install it.
 sudo dpkg -i grafana_11.3.0_amd64.deb
 
-# Add provisioning file
+# Add provisioning files
+sudo mv /home/vagrant/grafana/grafana.ini /etc/grafana/grafana.ini
 sudo mv /home/vagrant/grafana/influxdb_datasource.yaml /etc/grafana/provisioning/datasources/influxdb_datasource.yaml
+sudo mv /home/vagrant/grafana/influxdb_dashboard.yaml /etc/grafana/provisioning/dashboards/default.yaml
+mkdir /var/lib/grafana/dashboards
+sudo mv /home/vagrant/grafana/dashboard.json /etc/grafana/provisioning/dashboards/dashboard.json
 
 # Start the service (it's stopped by default).
 sudo systemctl start grafana-server

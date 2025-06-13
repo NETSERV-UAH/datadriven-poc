@@ -34,6 +34,7 @@ Vagrant.configure("2") do |config|
     factory_config.vm.provider "virtualbox" do |vb|
       vb.memory = 4096 # 2GB de RAM
       vb.cpus = 3      # 2 cores
+      vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
     end
     # Ejecutar el script mininet-wifi/install.sh en FactoryFloor
     factory_config.vm.provision "shell", path: "mininet-wifi/install.sh"
@@ -50,6 +51,7 @@ Vagrant.configure("2") do |config|
     edge_config.vm.provider "virtualbox" do |vb|
       vb.memory = 2048 # 2GB de RAM
       vb.cpus = 2      # 2 cores
+      vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
     end
     # Ejecutar el script ryu/install.sh en Edge y el de InfluxDB
     edge_config.vm.provision "shell", path: "ryu/install.sh"
@@ -66,9 +68,12 @@ Vagrant.configure("2") do |config|
     cloud_config.vm.provider "virtualbox" do |vb|
       vb.memory = 2048 # 2GB de RAM
       vb.cpus = 2      # 2 cores
+      vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
     end
     # Ejecutar el script grafana/install.sh en Cloud y el de BentoML
     cloud_config.vm.provision "file", source: "grafana/influxdb_datasource.yaml", destination: "/home/vagrant/grafana/influxdb_datasource.yaml"
+    cloud_config.vm.provision "file", source: "grafana/influxdb_dashboard.yaml", destination: "/home/vagrant/grafana/influxdb_dashboard.yaml"
+    cloud_config.vm.provision "file", source: "grafana/dashboard.json", destination: "/home/vagrant/grafana/dashboard.json"
     cloud_config.vm.provision "shell", path: "grafana/install.sh"
     cloud_config.vm.provision "file", source: "bentoml/service.py", destination: "/home/vagrant/service.py"
     cloud_config.vm.provision "file", source: "bentoml/train.py", destination: "/home/vagrant/train.py"
