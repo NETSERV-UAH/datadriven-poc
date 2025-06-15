@@ -4,7 +4,7 @@ import uuid, pickle
 import numpy as np
 #import pandas as pd
 import time
-import sys
+import sys, os
 import requests
 from datetime import datetime
 
@@ -86,8 +86,15 @@ class IIoT_Sensor(object):
 
         # Realiza la solicitud POST
         url = self.INFLUX_URL_API + f"/write?org={self.INFLUX_ORG_ID}&bucket={self.INFLUX_BUCKET}&precision=ns"
-        response = requests.post(url, headers=headers, data=data)
-
+        try:
+            response = requests.post(url, headers=headers, data=data, timeout=0.5)
+        except requests.exceptions.RequestException as e:
+            print(f"{Color.RED}[ERROR]{Color.END} Unable to reach database. Switch might be dropping packets: {e}")
+            sta = self.name.split('-')[1]
+            # Desconectamos la estación para que haga rel associate to otro ap
+            os.system(f"iw dev {sta}-wlan0 disconnect")
+            time.sleep(3)
+            os.system(f"iw dev {sta}-wlan0 connect ssid-ap2") # Por ahora para probar que iba había probado que fueran todos a ap2, puedo cambiarlo a que haga un escaneo y seleccione un ap distinto del anterior. 
 
 
     def oauth_get_token(self):

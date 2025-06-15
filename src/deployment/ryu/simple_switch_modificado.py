@@ -31,6 +31,7 @@ import requests
 # Parametros flows
 IDLE_TIMEOUT_S = 30 #s
 HARD_TIMEOUT_S = 30 #s
+dropped_sensors = list()
 
 # Configuración InfluxDB
 INFLUXDB_URL = "http://192.168.56.12:8086"
@@ -145,18 +146,11 @@ class SimpleSwitch13(app_manager.RyuApp):
             out_port = ofproto.OFPP_FLOOD
 
         actions = [parser.OFPActionOutput(out_port)]
-        # Pongo a 0 los timeout para que sean para siempre
+        # Pongo a 0 los timeout para que por defecto sean para siempre
         idle_timeout = 0
         hard_timeout = 0
         if src in mac_sensors.keys() and eth.ethertype == ether_types.ETH_TYPE_IP:
-            """
-            if eth.ethertype == ether_types.ETH_TYPE_IP:
-                ip = pkt.get_protocol(ipv4.ipv4)
-                srcip = ip.src
-                dstip = ip.dst
-                protocol = ip.proto
-                self.logger.info(f"Sensor con ip: {srcip} -> {dstip} y protocolo {protocol}")
-            """
+            
             # Estoy ante un paquete IP con origen los sensores
             ip = pkt.get_protocol(ipv4.ipv4)
             sensor_detected = mac_sensors[src]
@@ -165,23 +159,29 @@ class SimpleSwitch13(app_manager.RyuApp):
             # Idle_tiemout and hard_timeout set porque son paquetes de influxdb
             idle_timeout = IDLE_TIMEOUT_S
             hard_timeout = HARD_TIMEOUT_S
-            # Query influxdb for sensors state (temperature mean)
-            sensors_value = self.query_influxdb()
-            if sensors_value:
-                # Query bentoml for infer actions
-                sensors_response = self.query_bentoml(sensors_value)
-                try:
-                    respuesta = sensors_response[mac_sensors[src]]['bentoml_response']
-                    self.logger.info(f"Sensor {sensor_detected} con respuesta {respuesta}")
-                    if sensors_response[mac_sensors[src]]["bentoml_response"] == 1:
-                        actions = []
-                        self.logger.info(f"{sensors_response[mac_sensors[src]]} packet dropped since {sensors_response[mac_sensors[src]]['bentoml_response']} received")
-                except KeyError as e:
-                    self.logger.error(f"Aún no hay datos de {sensor_detected}")
-                self.logger.info(f"La acción es la siguiente {actions}")
+            
+            self.logger.info(f"Sensores droppeados: {dropped_sensors}")
+            if src not in dropped_sensors:
+                # Query influxdb for sensors state (temperature mean)
+                sensors_value = self.query_influxdb()
+                if sensors_value:
+                    # Query bentoml for infer actions
+                    sensors_response = self.query_bentoml(sensors_value)
+                    try:
+                        respuesta = sensors_response[mac_sensors[src]]['bentoml_response']
+                        self.logger.info(f"Sensor {sensor_detected} con respuesta {respuesta}")
+                        if sensors_response[mac_sensors[src]]["bentoml_response"] == 1:
+                            actions = []
+                            dropped_sensors.append(src)
+                            self.logger.info(f"{sensors_response[mac_sensors[src]]} packet dropped since {sensors_response[mac_sensors[src]]['bentoml_response']} received")
+                    except KeyError as e:
+                        self.logger.error(f"Aún no hay datos de {sensor_detected}")
+                    self.logger.info(f"La acción es la siguiente {actions}")
+                else:
+                    self.logger.info(f"Influxdb database still empty: {sensors_value}")
             else:
-                self.logger.info(f"Influxdb database still empty: {sensors_value}")
-
+                self.logger.info(f"Sensor {src} estaba dropeado y no se ha consultado influxdb")
+                dropped_sensors.remove(src)
         # install a flow to avoid packet_in next time
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src, eth_type=eth.ethertype) # Añado el ethertype para que me diferencie los ARP de los IP

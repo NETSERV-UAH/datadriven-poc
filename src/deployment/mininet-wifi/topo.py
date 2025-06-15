@@ -6,14 +6,17 @@ from mininet.node import RemoteController
 from mn_wifi.node import UserAP, OVSAP
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI
+from mn_wifi.link import wmediumd
+from mn_wifi.wmediumdConnector import interference
 
 # Set sta1 and sta3 as outside and sta2 as inside
 sensors_out_in = {"sta1": 0, "sta2": 1, "sta3": 0}
 
 
 def scenario_basic():
-
-    net = Mininet_wifi(accessPoint= UserAP)
+    # Quito accessPoint= UserAP, para que no haya que poner cls=OVSAP en cada addAccessPoint
+    # ac_method='llf', link=wmediumd, wmediumd_mode=interference para en teoría que se permita la reasociacion a otro AP. AUnque no funciona
+    net = Mininet_wifi(accessPoint= UserAP, ac_method='llf', link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
     
@@ -25,17 +28,18 @@ def scenario_basic():
                             port = 6633)
 
     info('*** Add UserAPs ***\n')
-    #ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="ssid-ap1", position='50,50,0')
-    #ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:02', ssid="ssid-ap2", position='70,50,0')
-    #ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="ssid-ap3", position='90,50,0')
-    ap1 = net.addAccessPoint('ap1',cls=OVSAP, mac='00:00:00:00:00:01', position='50,50,0')
-    ap2 = net.addAccessPoint('ap2',cls=OVSAP, mac='00:00:00:00:00:02', position='70,50,0')
-    ap3 = net.addAccessPoint('ap3',cls=OVSAP, mac='00:00:00:00:00:03', position='90,50,0')
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="ssid-ap1", position='50,50,0')
+    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:02', ssid="ssid-ap2", position='70,50,0')
+    ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="ssid-ap3", position='90,50,0')
 
     info('*** Add Sensors ***\n')
     sta1 = net.addStation('sta1', mac='00:00:00:00:01:01', ip='10.0.0.1/8', position='50,30,0')
     sta2 = net.addStation('sta2', mac='00:00:00:00:01:02', ip='10.0.0.2/8', position='70,30,0')
     sta3 = net.addStation('sta3', mac='00:00:00:00:01:03', ip='10.0.0.3/8', position='90,30,0')
+
+    # Para movilidad. En teoría para que permita la reasociación. No funciona
+    info("*** Configuring Propagation Model\n")
+    net.setPropagationModel(model="logDistance", exp=3.5)
 
     info("*** Configuring nodes\n")
     net.configureNodes()
