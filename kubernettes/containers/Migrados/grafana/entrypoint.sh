@@ -12,6 +12,7 @@ echo "[INFO] Descargando ficheros"
 
 mkdir -p /var/lib/grafana/dashboards
 mkdir -p /etc/grafana/provisioning/dashboards
+mkdir -p /etc/grafana/provisioning/datasources
 mkdir -p /tmp
 
 wget -q -O /var/lib/grafana/dashboards/dashboard.json https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/grafana/dashboards/dashboard.json
