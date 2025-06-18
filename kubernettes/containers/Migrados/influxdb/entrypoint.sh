@@ -12,19 +12,17 @@ done
 
 echo "[INFO] InfluxDB está listo. Realizando configuración inicial..."
 
-
 curl -s -X POST http://localhost:8086/api/v2/setup \
 -H "Content-Type: application/json" \
---data '{
-    "username": "jorge",
-    "password": "ELPORRAS",
-    "token": "3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==",
-    "org": "UAH",
-    "bucket": "iiot_data"
-}'
+--data "{
+    \"username\": \"${INFLUXDB_USERNAME}\",
+    \"password\": \"${INFLUXDB_PASSWORD}\",
+    \"token\": \"${INFLUXDB_TOKEN}\",
+    \"org\": \"UAH\",
+    \"bucket\": \"iiot_data\"
+}"
+
 echo "[INFO] Configuración inicial realizada con éxito."
-
-
 
 wait
 

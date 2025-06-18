@@ -4,13 +4,14 @@ datasources:
     version: 2
     type: influxdb
     access: proxy
-    url: http://192.168.56.12:8086
-    user: jorge
-    password: ELPORRAS
+    url: {{ env "INFLUX_URL" }}
+    user: {{ env "INFLUX_USER" }}
+    password: {{ env "INFLUX_PASSWORD" }}
     jsonData:
       httpMode: POST
       defaultBucket: iiot_data
       organization: UAH
       version: Flux
     secureJsonData:
-      token: 3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==
+      token: {{ env "INFLUX_TOKEN" }}
+

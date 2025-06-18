@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+  namespace: datadriven
+  labels:
+    app: influxdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influxdb
+  template:
+    metadata:
+      labels:
+        app: influxdb
+    spec:
+      containers:
+        - name: influxdb
+          image: <Laima gen>
+          env:
+            - name: INFLUXDB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: influxdb-secrets
+                  key: INFLUXDB_USERNAME
+            - name: INFLUXDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: influxdb-secrets
+                  key: INFLUXDB_PASSWORD
+            - name: INFLUXDB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: influxdb-secrets
+                  key: INFLUXDB_TOKEN
+          volumeMounts:
+            - name: influxdb-storage
+              mountPath: /var/lib/influxdb2
+      volumes:
+        - name: influxdb-storage
+          persistentVolumeClaim:
+            claimName: influxdb-storage
+
