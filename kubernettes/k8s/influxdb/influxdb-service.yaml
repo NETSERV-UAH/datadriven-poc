@@ -4,11 +4,11 @@ metadata:
   name: influxdb
   namespace: datadriven
 spec:
+  type: LoadBalancer
   selector:
     app: influxdb
-  type: LoadBalancer
   ports:
     - name: http
       port: 8086
       targetPort: 8086
-
+      nodePort: 32086
