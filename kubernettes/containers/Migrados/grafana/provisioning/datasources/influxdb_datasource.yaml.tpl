@@ -1,17 +1,18 @@
 apiVersion: 1
+
 datasources:
   - name: Prueba
-    version: 2
     type: influxdb
     access: proxy
-    url: {{ env "INFLUX_URL" }}
-    user: {{ env "INFLUX_USER" }}
-    password: {{ env "INFLUX_PASSWORD" }}
+    url: "${INFLUX_URL}"
+    user: "${INFLUX_USER}"
+    password: "${INFLUX_PASSWORD}"
+    isDefault: true
     jsonData:
       httpMode: POST
-      defaultBucket: iiot_data
-      organization: UAH
+      defaultBucket: "${INFLUX_BUCKET}"
+      organization: "${INFLUX_ORG}"
       version: Flux
     secureJsonData:
-      token: {{ env "INFLUX_TOKEN" }}
+      token: "${INFLUX_TOKEN}"
 
