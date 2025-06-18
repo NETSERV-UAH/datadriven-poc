@@ -1,4 +1,32 @@
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafana-storage-pv
+  namespace: datadriven
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/grafana-storage
+  persistentVolumeReclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafana-provisioning-pv
+  namespace: datadriven
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/grafana-provisioning
+  persistentVolumeReclaimPolicy: Retain
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: grafana-storage
@@ -9,6 +37,8 @@ spec:
   resources:
     requests:
       storage: 1Gi
+  volumeName: grafana-storage-pv
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -20,4 +50,4 @@ spec:
   resources:
     requests:
       storage: 1Gi
-
+  volumeName: grafana-provisioning-pv
