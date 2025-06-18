@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: grafana
-          image: <Laima gen>
+          image: ghcr.io/netserv-uah/grafana-datadriven:latest
           imagePullPolicy: Always
           env:
             - name: GF_SECURITY_ADMIN_USER

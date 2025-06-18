@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: influxdb
-          image: <Laima gen>
+          image: ghcr.io/netserv-uah/influxdb-datadriven:latest
           env:
             - name: INFLUXDB_USERNAME
               valueFrom:
