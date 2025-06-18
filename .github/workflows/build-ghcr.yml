@@ -1,5 +1,5 @@
 name: Build and Push to GHCR
-run-name: ${{ github.actor }} is learning Devorando en GH Actions
+run-name: ${{ github.actor }} está compilando contenedores :)
 on:
   push:
     branches:

@@ -9,15 +9,12 @@ echo "[INFO] Iniciando contenedor de Grafana..."
 : "${INFLUX_PASSWORD:?Falta INFLUX_PASSWORD}"
 : "${INFLUX_TOKEN:?Falta INFLUX_TOKEN}"
 echo "[INFO] Descargando ficheros"
-mkdir /var/lib/grafana/dashboards
-wget -q -O /var/lib/grafana/dashboards/dashboard.json \
-  https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/grafana/dashboards/dashboard.json
-wget -q -O /etc/grafana/provisioning/dashboards/dashboard.yaml \
-  https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/grafana/provisioning/dashboards/dashboards.yaml
-wget -q -O /tmp/influxdb_datasource.yaml.tpl \
-  https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/grafana/provisioning/datasources/influxdb_datasource.yaml.tpl
-wget -q -O /tmp/grafana.ini.tpl \
-  https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/grafana/grafana.ini.tpl
+
+wget -q -O /var/lib/grafana/dashboards/dashboard.json https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/grafana/dashboards/dashboard.json
+wget -q -O /etc/grafana/provisioning/dashboards/dashboard.yaml https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/grafana/provisioning/dashboards/dashboards.yaml
+wget -q -O /tmp/influxdb_datasource.yaml.tpl https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/grafana/provisioning/datasources/influxdb_datasource.yaml.tpl
+wget -q -O /tmp/grafana.ini.tpl https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/grafana/grafana.ini.tpl
+
 echo "[INFO] Procesando plantillas..."
 envsubst < /tmp/influxdb_datasource.yaml.tpl > /etc/grafana/provisioning/datasources/influxdb_datasource.yaml
 envsubst < /tmp/grafana.ini.tpl > /etc/grafana/grafana.ini
