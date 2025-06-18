@@ -1,5 +1,5 @@
 name: Build and Push to GHCR
-run-name: ${{ github.actor }} is learning Devorando en GH Actions
+run-name: ${{ github.actor }} está compilando contenedores :)
 on:
   push:
     branches:
@@ -24,12 +24,27 @@ jobs:
         id: vars
         run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
+      - name: Check changes in Grafana and InfluxDB
+        id: changes
+        run: |
+          echo "grafana_changed=false" >> $GITHUB_OUTPUT
+          echo "influxdb_changed=false" >> $GITHUB_OUTPUT
+
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^kubernettes/containers/Migrados/grafana/'; then
+            echo "grafana_changed=true" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^kubernettes/containers/Migrados/influxdb/'; then
+            echo "influxdb_changed=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Grafana image
+        if: steps.changes.outputs.grafana_changed == 'true'
         run: |
           docker build -t ghcr.io/${{ steps.vars.outputs.owner }}/grafana-datadriven:latest ./kubernettes/containers/Migrados/grafana
           docker push ghcr.io/${{ steps.vars.outputs.owner }}/grafana-datadriven:latest
 
       - name: Build and push InfluxDB image
+        if: steps.changes.outputs.influxdb_changed == 'true'
         run: |
           docker build -t ghcr.io/${{ steps.vars.outputs.owner }}/influxdb-datadriven:latest ./kubernettes/containers/Migrados/influxdb
           docker push ghcr.io/${{ steps.vars.outputs.owner }}/influxdb-datadriven:latest
