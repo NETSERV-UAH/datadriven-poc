@@ -12,7 +12,7 @@ RUN rm grafana_11.3.0_amd64.deb
 
 RUN mkdir -p /var/lib/grafana/dashboards
 
-COPY grafana.ini /etc/grafana/grafana.ini
+COPY grafana.ini.tpl /etc/grafana/grafana.ini.tpl
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
