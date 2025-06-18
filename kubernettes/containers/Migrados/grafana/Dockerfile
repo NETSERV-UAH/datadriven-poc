@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update
-RUN apt-get install -y wget git musl
+RUN apt-get install -y wget git musl gettext
 RUN adduser libfontconfig1 
 RUN adduser musl 
 
