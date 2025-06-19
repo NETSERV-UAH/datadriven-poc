@@ -52,6 +52,16 @@ spec:
                 secretKeyRef:
                   name: grafana-secrets
                   key: INFLUX_TOKEN
+            - name: INFLUX_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-secrets
+                  key: INFLUX_BUCKET
+            - name: INFLUX_ORG
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-secrets
+                  key: INFLUX_ORG
           volumeMounts:
             - name: grafana-storage
               mountPath: /var/lib/grafana

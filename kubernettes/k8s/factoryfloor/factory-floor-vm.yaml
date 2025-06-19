@@ -1,0 +1,50 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: ubuntu22-FactoryFloor
+  namespace: factory-floor
+spec:
+  running: true
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: ubuntu22-FactoryFloor
+    spec:
+      domain:
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: "2"
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/containerdisks/ubuntu:22.04
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              disable_root: true
+              ssh_pwauth: true
+              users:
+                - name: jorge
+                  groups: sudo
+                  shell: /bin/bash
+                  sudo: ['ALL=(ALL) NOPASSWD:ALL']
+                  lock_passwd: false
+                  passwd: $6$rounds=4096$QxHz0qD3YIGFjGMd$glGEnNPdzlywMMy29Vq7gn9P0eO7iY9OGL6lFYuubVhRx9AXrRz.C6rNHU0iVbKc7K43qqCe9DiF9v8xZABvo.
+              runcmd:
+                - echo "VM lista" > /home/jorge/listo.txt

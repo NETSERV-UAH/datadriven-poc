@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-vm-jorge
+  namespace: factory-floor
+spec:
+  selector:
+    kubevirt.io/domain: ubuntu22-FactoryFloor
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: 22
+      nodePort: 30222
+      protocol: TCP
+  type: NodePort
