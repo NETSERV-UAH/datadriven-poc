@@ -25,5 +25,9 @@ envsubst < /tmp/influxdb_datasource.yaml.tpl > /etc/grafana/provisioning/datasou
 envsubst < /tmp/grafana.ini.tpl > /etc/grafana/grafana.ini
 echo "[INFO] Lanzando Grafana..."
 
+cat /etc/grafana/grafana.ini
+
+cat /etc/grafana/provisioning/datasources/influxdb_datasource.yaml
+
 exec /usr/sbin/grafana-server --config=/etc/grafana/grafana.ini --homepath=/usr/share/grafana --packaging=deb web
 
