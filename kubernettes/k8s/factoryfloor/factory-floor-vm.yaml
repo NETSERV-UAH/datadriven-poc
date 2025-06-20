@@ -1,14 +1,14 @@
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
-  name: ubuntu22-FactoryFloor
+  name: ubuntu22-factoryfloor
   namespace: factory-floor
 spec:
   running: true
   template:
     metadata:
       labels:
-        kubevirt.io/domain: ubuntu22-FactoryFloor
+        kubevirt.io/domain: ubuntu22-factoryfloor
     spec:
       domain:
         devices:
@@ -45,6 +45,6 @@ spec:
                   shell: /bin/bash
                   sudo: ['ALL=(ALL) NOPASSWD:ALL']
                   lock_passwd: false
-                  passwd: $6$rounds=4096$QxHz0qD3YIGFjGMd$glGEnNPdzlywMMy29Vq7gn9P0eO7iY9OGL6lFYuubVhRx9AXrRz.C6rNHU0iVbKc7K43qqCe9DiF9v8xZABvo.
+                  passwd: $6$EtaUTWh/HshzprTY$7jmKjmkCCbyR4qVy9D6/dVtis7C8XN.b4oi5TsPYZJEn8qn/bTrgZBSt/Nwu8wvtHAEjxPOB410VXqR3uMG/r/
               runcmd:
                 - echo "VM lista" > /home/jorge/listo.txt
