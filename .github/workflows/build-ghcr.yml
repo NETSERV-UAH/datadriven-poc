@@ -33,3 +33,8 @@ jobs:
         run: |
           docker build -t ghcr.io/${{ steps.vars.outputs.owner }}/influxdb-datadriven:latest ./kubernettes/containers/Migrados/influxdb
           docker push ghcr.io/${{ steps.vars.outputs.owner }}/influxdb-datadriven:latest
+      
+      - name: Build and push Ryu image
+        run: |
+          docker build -t ghcr.io/${{ steps.vars.outputs.owner }}/ryu-datadriven:latest ./kubernettes/containers/Migrados/ryu
+          docker push ghcr.io/${{ steps.vars.outputs.owner }}/ryu-datadriven:latest

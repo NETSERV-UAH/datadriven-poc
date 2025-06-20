@@ -63,6 +63,7 @@ spec:
                 - echo 'export INFLUXDB_IP=http://influxdb.datadriven.svc.cluster.local:8086/api/v2' >> /etc/profile.d/env.sh
                 - echo 'export INFLUX_TOKEN=3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==' >> /etc/profile.d/env.sh
                 - chmod +x /etc/profile.d/env.sh
+                - source /etc/profile.d/env.sh
                 - echo "VM lista" > /home/listo.txt
                 - python3 topo.py
 

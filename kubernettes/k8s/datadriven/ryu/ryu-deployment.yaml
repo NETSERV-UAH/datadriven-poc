@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ryu-app
+  namespace: factory-floor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ryu-app
+  template:
+    metadata:
+      labels:
+        app: ryu-app
+    spec:
+      containers:
+      - name: ryu
+        image: ryu-custom:latest
+        env:
+          - name: INFLUXDB_URL
+            valueFrom:
+              secretKeyRef:
+                name: ryu-secrets
+                key: INFLUXDB_URL
+          - name: INFLUXDB_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: ryu-secrets
+                key: INFLUXDB_TOKEN
+          - name: INFLUXDB_ORG
+            valueFrom:
+              secretKeyRef:
+                name: ryu-secrets
+                key: INFLUXDB_ORG
+          - name: INFLUXDB_BUCKET
+            valueFrom:
+              secretKeyRef:
+                name: ryu-secrets
+                key: INFLUXDB_BUCKET
+          - name: BENTO_URL
+            valueFrom:
+              secretKeyRef:
+                name: ryu-secrets
+                key: BENTO_URL

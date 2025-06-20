@@ -1,0 +1,12 @@
+webob
+eventlet==0.33.3
+msgpack>=0.4.0
+netaddr
+oslo.config>=2.5.0
+ovs>=2.6.0
+packaging==20.9
+routes
+tinyrpc==1.0.4
+influxdb-client
+requests
+
