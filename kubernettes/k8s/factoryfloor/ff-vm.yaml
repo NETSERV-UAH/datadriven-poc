@@ -13,7 +13,7 @@ spec:
       domain:
         devices:
           disks:
-            - name: containerdisk
+            - name: rootdisk
               disk:
                 bus: virtio
             - name: cloudinitdisk
@@ -30,9 +30,9 @@ spec:
         - name: default
           pod: {}
       volumes:
-        - name: containerdisk
-          containerDisk:
-            image: quay.io/containerdisks/ubuntu:22.04
+        - name: rootdisk
+          persistentVolumeClaim:
+            claimName: ubuntu22-dv
         - name: cloudinitdisk
           cloudInitNoCloud:
             userData: |
