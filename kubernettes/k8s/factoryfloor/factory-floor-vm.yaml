@@ -45,6 +45,12 @@ spec:
                   shell: /bin/bash
                   sudo: ['ALL=(ALL) NOPASSWD:ALL']
                   lock_passwd: false
-                  passwd: $6$EtaUTWh/HshzprTY$7jmKjmkCCbyR4qVy9D6/dVtis7C8XN.b4oi5TsPYZJEn8qn/bTrgZBSt/Nwu8wvtHAEjxPOB410VXqR3uMG/r/
+                  passwd: $6$EtaUTWh/HshzprTY$7jmKjmkCCbyR4qVy9D6/dVtis7C8XN.b4oi5TsPYZJEn8qn/bTrgZBSt/Nwu8wvtHAEjxPOB410VXqR3uMG/r/         
               runcmd:
-                - echo "VM lista" > /home/jorge/listo.txt
+                - echo 'export RYU_CONTROLLER_IP=ryu-controller.datadriven.svc.cluster.local' >> /etc/profile.d/env.sh
+                - echo 'export RYU_CONTROLLER_PORT=6633' >> /etc/profile.d/env.sh
+                - echo 'export INFLUXDB_IP=http://influxdb.datadriven.svc.cluster.local:8086/api/v2' >> /etc/profile.d/env.sh
+                - echo 'export INFLUX_TOKEN=3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==' >> /etc/profile.d/env.sh
+                - chmod +x /etc/profile.d/env.sh
+                - echo "VM lista" > /home/listo.txt
+                

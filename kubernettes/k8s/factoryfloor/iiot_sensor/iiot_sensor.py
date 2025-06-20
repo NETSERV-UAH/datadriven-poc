@@ -25,7 +25,8 @@ class IIoT_Sensor(object):
     """
 		Class to define IIoT Sensor
 	"""
-    def __init__(self, name, inside=True, temperature_path="temperatures.pkl", interval=1.0):
+    def __init__(self, name, inside=True, temperature_path="temperatures.pkl", interval=1.0,
+                 influx_ip=None, influx_org_id=None, influx_bucket=None, influx_token=None):
         self.uuid = uuid.uuid4()
         self.name = name
         self.location = inside
@@ -34,10 +35,10 @@ class IIoT_Sensor(object):
         self.temperature = float(self.init_temperature())
         self.datetime = datetime.now()
         self.temperature_alert = False
-        self.INFLUX_URL_API = "http://192.168.56.12:8086/api/v2"
-        self.INFLUX_ORG_ID = ""
-        self.INFLUX_BUCKET = ""
-        self.INFLUX_TOKEN = "3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA=="
+        self.INFLUX_URL_API = f"{influx_ip}"
+        self.INFLUX_ORG_ID = influx_org_id
+        self.INFLUX_BUCKET = influx_bucket
+        self.INFLUX_TOKEN = influx_token
         self.SENSOR_TOKEN = ""
 
         # Verifica la conectividad antes de continuar
@@ -52,7 +53,7 @@ class IIoT_Sensor(object):
         start_time = time.time()
         while time.time() - start_time < timeout:
             try:
-                response = requests.get("http://192.168.56.12:8086" + "/health", timeout=5)
+                response = requests.get(self.INFLUX_URL_API.replace("/api/v2", "/health"), timeout=5)
                 if response.status_code == 200:
                     print(f"{Color.GREEN}[INFO]{Color.END} Connectivity to InfluxDB API verified.")
                     return True
@@ -63,14 +64,10 @@ class IIoT_Sensor(object):
             time.sleep(2)
         return False
 
-
     def init_temperature(self):
-
         return np.random.randint(29,31) if self.location else np.random.randint(35,42)
 
-
     def update_temperature(self, new_temperature):
-
         self.temperature = float(new_temperature)
         self.datetime = datetime.now()
         print(f"{Color.GREEN}[UPDATE]{Color.END}[{Color.BLUE}{self.name}{Color.END}] Sensor temperature updated to {self.temperature} °C at {self.datetime}.")
@@ -91,21 +88,16 @@ class IIoT_Sensor(object):
         except requests.exceptions.RequestException as e:
             print(f"{Color.RED}[ERROR]{Color.END} Unable to reach database. Switch might be dropping packets: {e}")
             sta = self.name.split('-')[1]
-            # Desconectamos la estación para que haga rel associate to otro ap
             os.system(f"iw dev {sta}-wlan0 disconnect")
             time.sleep(3)
-            os.system(f"iw dev {sta}-wlan0 connect ssid-ap2") # Por ahora para probar que iba había probado que fueran todos a ap2, puedo cambiarlo a que haga un escaneo y seleccione un ap distinto del anterior. 
-
+            os.system(f"iw dev {sta}-wlan0 connect ssid-ap2") 
 
     def oauth_get_token(self):
-
-        # Define los HEADERS de la peti
         headers = {
             "Authorization": f"Token {self.INFLUX_TOKEN}",
             "Content-type": "application/json"
         }
 
-        # Define los datos 
         data = {
             "status": "active",
             "description": f"iott-device-{self.name}",
@@ -129,73 +121,43 @@ class IIoT_Sensor(object):
             ]
         }
 
-        # Realiza la solicitud POST
         url = self.INFLUX_URL_API + "/authorizations"
         response = requests.post(url, headers=headers, json=data)
-
-        # Parsea la respuesta JSON
         parsed_response = response.json()
-
-        # Guardamos el token dado
         self.SENSOR_TOKEN = parsed_response["token"]
 
-
-
     def oauth_get_INFLUX_ORG_ID(self):
-
-        # Define los HEADERS de la peti
         headers = {
             "Authorization": f"Token {self.INFLUX_TOKEN}",
             "Content-type": "application/json"
         }
 
-         # Define los datos 
         data = {
             "name": "UAH"
         }
 
-        # Realiza la solicitud POST
         url = self.INFLUX_URL_API + "/orgs"
         response = requests.get(url, headers=headers, json=data)
-
-        # Parsea la respuesta JSON
         parsed_response = response.json()
-
-        # Guardamos el token dado
         self.INFLUX_ORG_ID = parsed_response["orgs"][0]["id"]
 
-
     def oauth_get_INFLUX_BUCKET(self):
-
-        # Define los HEADERS de la peti
         headers = {
             "Authorization": f"Token {self.INFLUX_TOKEN}",
             "Content-type": "application/json"
         }
 
-         # Define los datos 
         data = {
             "org": "UAH",
             "name": "iiot_data"
         }
 
-        # Realiza la solicitud POST
         url = self.INFLUX_URL_API + "/buckets"
         response = requests.get(url, headers=headers, json=data)
-
-        # Parsea la respuesta JSON
         parsed_response = response.json()
-
-        # Guardamos el token dado
         self.INFLUX_BUCKET = next((item['id'] for item in parsed_response['buckets'] if item['name'] == 'iiot_data'), None)
 
-
     def simulate_temperature_variation(self, time_interval, previous_temperature):
-        """
-        Simulates realistic temperature variation based on time interval and location,
-        considering inertia from previous variations.
-        """
-        # Define las variaciones promedio y las desviaciones estándar según la ubicación
         if self.location:
             average_variation = 0.05
             std_deviation = 0.01
@@ -203,30 +165,17 @@ class IIoT_Sensor(object):
             average_variation = -0.03
             std_deviation = 0.01
         
-        # Calcula la variación aleatoria basada en una distribución normal
         random_variation = np.random.normal(average_variation, std_deviation)
-
-        # Calcula la nueva variación como la suma de la variación aleatoria y la inercia anterior
         new_variation = np.random.choice([-1, 1]) * 0.7 * random_variation + 0.3 * (self.temperature - previous_temperature)
-
-        # Calcula la nueva temperatura
         new_temperature = self.temperature + new_variation * time_interval
-
         return new_temperature
 
-
     def run(self):
-
         previous_temperature = self.temperature
-        
-        # Oauth process
-        self.oauth_get_INFLUX_ORG_ID()
-        self.oauth_get_INFLUX_BUCKET()
         self.oauth_get_token()
 
         while(True):
             try:
-                
                 self.update_temperature(self.simulate_temperature_variation(self.interval, previous_temperature))
                 previous_temperature = self.temperature
                 time.sleep(self.interval)
@@ -234,14 +183,20 @@ class IIoT_Sensor(object):
                 print("Exiting...")
                 break
 
-
     def __str__(self):
         return f"-----------------------------------------------------\nSensor ID: {self.uuid}\n\t[+] Name: {self.name}\n\t[+] Temperature: {self.temperature} °C\n\t[+] Date: {self.datetime}\n\t[+] Location: {'Inside' if self.location else 'Outside'}\n\t[+] Temperature Warning: {'Yes' if self.temperature_alert else 'No'}\n-----------------------------------------------------"
 
-
-	
-
-
 if __name__ == "__main__":
-    #sensor1 = IIoT_Sensor(sys.argv[1], False, 'temperatures.pkl', 2.0)
-    sensor1 = IIoT_Sensor(sys.argv[1], int(sys.argv[2]) if len(sys.argv) >= 3 else False, 'temperatures.pkl', 2.0)
+    if len(sys.argv) < 7:
+        print(f"{Color.RED}[USAGE]{Color.END} python3 iiot_sensor.py <name> <inside(0|1)> <influx_ip> <org_id> <bucket_id> <token>")
+        sys.exit(1)
+
+    name = sys.argv[1]
+    location = int(sys.argv[2])
+    influx_ip = sys.argv[3]
+    org_id = sys.argv[4]
+    bucket_id = sys.argv[5]
+    token = sys.argv[6]
+
+    sensor1 = IIoT_Sensor(name, location, 'temperatures.pkl', 2.0, influx_ip, org_id, bucket_id, token)
+
