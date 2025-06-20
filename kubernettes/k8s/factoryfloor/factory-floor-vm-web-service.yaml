@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: http-vm-jorge
+  name: http-vm-factory-floor
   namespace: factory-floor
 spec:
   selector:
-    kubevirt.io/domain: ubuntu22-FactoryFloor
+    kubevirt.io/domain: ubuntu22-factoryfloor
   ports:
     - name: http
       port: 80
