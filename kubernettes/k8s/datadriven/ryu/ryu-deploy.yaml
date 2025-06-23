@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ryu-app
-  namespace: factory-floor
+  name: ryu
+  namespace: datadriven
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ryu-app
+      app: ryu
   template:
     metadata:
       labels:
-        app: ryu-app
+        app: ryu
     spec:
       containers:
       - name: ryu
