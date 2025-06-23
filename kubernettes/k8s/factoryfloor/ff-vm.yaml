@@ -24,8 +24,8 @@ spec:
               masquerade: {}
         resources:
           requests:
-            memory: 1Gi
-            cpu: "2"
+            memory: 4Gi
+            cpu: "4"
       networks:
         - name: default
           pod: {}
@@ -64,10 +64,11 @@ spec:
                 - wget -q -O topo.py https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/factoryfloor/mininet-wifi/topo.py
                 - chmod +x mininet-install.sh
                 - ./mininet-install.sh
-                - echo 'export RYU_CONTROLLER_IP=ryu-controller.datadriven.svc.cluster.local' >> /etc/profile.d/env.sh
+                - echo 'export RYU_CONTROLLER_IP=ryu.datadriven.svc.cluster.local' >> /etc/profile.d/env.sh
                 - echo 'export RYU_CONTROLLER_PORT=6633' >> /etc/profile.d/env.sh
-                - echo 'export INFLUXDB_IP=http://influxdb.datadriven.svc.cluster.local:8086/api/v2' >> /etc/profile.d/env.sh
-                - echo 'export INFLUX_TOKEN=3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==' >> /etc/profile.d/env.sh
+                - echo 'export INFLUXDB_IP=influxdb.datadriven.svc.cluster.local' >> /etc/profile.d/env.sh
+                - echo 'export INFLUXDB_PORT=8086' >> /etc/profile.d/env.sh
+                - echo 'export INFLUXDB_TOKEN=3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==' >> /etc/profile.d/env.sh
                 - sudo chmod +x /etc/profile.d/env.sh
                 - source /etc/profile.d/env.sh
                 - python3 topo.py

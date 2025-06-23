@@ -19,20 +19,15 @@ def scenario_basic():
     RYU_CONTROLLER_IP = os.environ.get("RYU_CONTROLLER_IP", "192.168.56.12")
     RYU_CONTROLLER_PORT = int(os.environ.get("RYU_CONTROLLER_PORT", "6633"))
     INFLUXDB_IP = os.environ.get("INFLUXDB_IP", "192.168.56.12")
-    INFLUX_ORG_ID = os.environ.get("INFLUX_ORG_ID", "")
-    INFLUX_BUCKET = os.environ.get("INFLUX_BUCKET", "")
-    INFLUX_TOKEN = os.environ.get("INFLUX_TOKEN", "")
+    INFLUXDB_PORT = int(os.environ.get("INFLUXDB_PORT", "6633"))
+    INFLUXDB_TOKEN = os.environ.get("INFLUXDB_TOKEN", "")
 
     net = Mininet_wifi(accessPoint=UserAP, ac_method='llf', link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
 
     info('*** Add Controller (Ryu) ***\n')
-    c0 = net.addController(name='c0',
-                           controller=RemoteController,
-                           ip=RYU_CONTROLLER_IP,
-                           protocol='tcp',
-                           port=RYU_CONTROLLER_PORT)
+    c0 = net.addController(name='c0', controller=RemoteController, ip=RYU_CONTROLLER_IP, protocol='tcp', port=RYU_CONTROLLER_PORT)
 
     info('*** Add UserAPs ***\n')
     ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="ssid-ap1", position='50,50,0')
@@ -78,7 +73,7 @@ def scenario_basic():
         sensor_location = sensors_out_in[sta.name]
         sta.cmd('sudo ip route add default via 10.0.0.4')
         sta.cmd(
-            f'python3 iiot_sensor.py sensor-{sta.name} {sensor_location} {INFLUXDB_IP} {INFLUX_ORG_ID} {INFLUX_BUCKET} {INFLUX_TOKEN} > {sta.name}.log & disown'
+            f'python3 iiot_sensor.py sensor-{sta.name} {sensor_location} http://{INFLUXDB_IP}:{INFLUXDB_PORT}/api/v2 {INFLUXDB_TOKEN} > {sta.name}.log & disown'
         )
 
     info('*** RUN Mininet-Wifi CLI ***\n')
