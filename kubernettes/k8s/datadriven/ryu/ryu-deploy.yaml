@@ -13,6 +13,8 @@ spec:
       labels:
         app: ryu
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
       - name: ryu
         image: ghcr.io/netserv-uah/ryu-datadriven:latest
