@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: ryu
-        image: ryu-custom:latest
+        image: ghcr.io/netserv-uah/ryu-datadriven:latest
         env:
           - name: INFLUXDB_URL
             valueFrom:
