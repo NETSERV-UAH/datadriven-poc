@@ -2,15 +2,19 @@
 
 echo "[+] Installing Mininet-Wifi..."
 
-sudo apt-get update
-sudo apt-get install -y git
+apt-get update
+apt-get install -y git
 
 git clone https://github.com/intrig-unicamp/mininet-wifi
 
-sudo ./mininet-wifi/util/install.sh -3Wlfnv
+./mininet-wifi/util/install.sh -3Wlfnv
 
 source /etc/profile.d/env.sh
 
-sudo python3 ./mininet-wifi/setup.py install
+cd /mininet-wifi/
 
-sudo apt-get install -y linux-modules-extra-$(uname -r)
+python3 ./setup.py install
+
+cd /
+
+apt-get install -y linux-modules-extra-$(uname -r)

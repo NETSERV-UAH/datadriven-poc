@@ -46,9 +46,15 @@ spec:
                   sudo: ['ALL=(ALL) NOPASSWD:ALL']
                   lock_passwd: false
                   passwd: $6$EtaUTWh/HshzprTY$7jmKjmkCCbyR4qVy9D6/dVtis7C8XN.b4oi5TsPYZJEn8qn/bTrgZBSt/Nwu8wvtHAEjxPOB410VXqR3uMG/r/
+              network:
+                version: 2
+                ethernets:
+                  enp1s0:
+                    dhcp4: true
               runcmd:
-                - sudo apt-get update
-                - sudo apt-get install wget -y
+                - sudo su
+                - apt-get update
+                - apt-get install wget -y
                 - wget -q -O iiot_sensor.py https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/factoryfloor/iiot_sensor/iiot_sensor.py
                 - wget -q -O iiot-install.sh https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/factoryfloor/iiot_sensor/install.sh
                 - wget -q -O temperatures.pkl https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/factoryfloor/iiot_sensor/temperatures.pkl
@@ -62,8 +68,7 @@ spec:
                 - echo 'export RYU_CONTROLLER_PORT=6633' >> /etc/profile.d/env.sh
                 - echo 'export INFLUXDB_IP=http://influxdb.datadriven.svc.cluster.local:8086/api/v2' >> /etc/profile.d/env.sh
                 - echo 'export INFLUX_TOKEN=3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==' >> /etc/profile.d/env.sh
-                - chmod +x /etc/profile.d/env.sh
+                - sudo chmod +x /etc/profile.d/env.sh
                 - source /etc/profile.d/env.sh
-                - echo "VM lista" > /home/listo.txt
                 - python3 topo.py
 
