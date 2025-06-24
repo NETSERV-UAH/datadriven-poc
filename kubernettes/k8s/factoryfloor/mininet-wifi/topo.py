@@ -10,12 +10,9 @@ from mn_wifi.cli import CLI
 from mn_wifi.link import wmediumd
 from mn_wifi.wmediumdConnector import interference
 
-# Define qué sensores están "dentro" (1) o "fuera" (0)
 sensors_out_in = {"sta1": 0, "sta2": 1, "sta3": 0}
 
-
 def scenario_basic():
-    # Leer variables de entorno o usar valores por defecto
     RYU_CONTROLLER_IP = os.environ.get("RYU_CONTROLLER_IP", "192.168.56.12")
     RYU_CONTROLLER_PORT = int(os.environ.get("RYU_CONTROLLER_PORT", "6633"))
     INFLUXDB_IP = os.environ.get("INFLUXDB_IP", "192.168.56.12")
@@ -31,9 +28,7 @@ def scenario_basic():
 
     info('*** Add UserAPs ***\n')
     ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="ssid-ap1", position='50,50,0')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:02', ssid="ssid-ap2", position='70,50,0')
-    ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="ssid-ap3", position='90,50,0')
-
+    
     info('*** Add Sensors ***\n')
     sta1 = net.addStation('sta1', mac='00:00:00:00:01:01', ip='10.0.0.1/8', position='50,30,0')
     sta2 = net.addStation('sta2', mac='00:00:00:00:01:02', ip='10.0.0.2/8', position='70,30,0')
@@ -44,14 +39,15 @@ def scenario_basic():
 
     info("*** Configuring nodes\n")
     net.configureNodes()
-    net.addNAT().configDefault()
+
+    info('*** Add NAT ***\n')
+    nat0 = net.addNAT('nat0')
+    nat0.configDefault()
 
     info('*** Add links ***\n')
     net.addLink(sta1, ap1)
-    net.addLink(sta2, ap2)
-    net.addLink(sta3, ap3)
-    net.addLink(ap1, ap2)
-    net.addLink(ap2, ap3)
+    net.addLink(sta2, ap1)
+    net.addLink(sta3, ap1)
 
     info("*** Plot the network ***\n")
     net.plotGraph(max_x=100, max_y=100)
@@ -59,14 +55,17 @@ def scenario_basic():
     info('\n*** Build it ***\n')
     net.build()
 
+    info('*** Setup bridge in ap1 ***\n')
+    ap1.cmd('ovs-vsctl add-br br-ap1')
+    ap1.cmd('ovs-vsctl add-port br-ap1 ap1-wlan1')
+    ap1.cmd('ovs-vsctl add-port br-ap1 ap1-eth2')
+
     info('*** Start the controller ***\n')
     for controller in net.controllers:
         controller.start()
 
-    info('*** Set controllers ***\n')
-    net.get('ap1').start([c0])
-    net.get('ap2').start([c0])
-    net.get('ap3').start([c0])
+    info('*** Set controllers for APs ***\n')
+    ap1.start([c0])
 
     info('*** Start the IIoT Sensors ***\n')
     for sta in net.stations:
@@ -81,8 +80,6 @@ def scenario_basic():
 
     net.stop()
 
-
 if __name__ == '__main__':
     setLogLevel('info')
     scenario_basic()
-

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 sudo -u vagrant -i bash <<'EOF'
-# Datadriven
+## Datadriven
 # ns
 kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/datadriven-ns.yaml
 # influxdb
@@ -18,7 +18,9 @@ kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/re
 kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/ryu/ryu-secrets.yaml
 kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/ryu/ryu-deploy.yaml
 kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/ryu/ryu-service.yaml
-# factory-floor
+# Bento
+
+## factory-floor
 
 
 EOF

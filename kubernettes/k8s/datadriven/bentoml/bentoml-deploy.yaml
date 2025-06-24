@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bentoml
+  namespace: datadriven
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bentoml
+  template:
+    metadata:
+      labels:
+        app: bentoml
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+      - name: bentoml
+        image: ghcr.io/netserv-uah/bentoml-datadriven:latest
+

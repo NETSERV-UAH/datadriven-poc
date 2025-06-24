@@ -38,3 +38,7 @@ jobs:
         run: |
           docker build -t ghcr.io/${{ steps.vars.outputs.owner }}/ryu-datadriven:latest ./kubernettes/containers/Migrados/ryu
           docker push ghcr.io/${{ steps.vars.outputs.owner }}/ryu-datadriven:latest
+      - name: Build and push BentoML image
+        run: |
+          docker build -t ghcr.io/${{ steps.vars.outputs.owner }}/bentoml-datadriven:latest ./kubernettes/containers/Migrados/bentoml
+          docker push ghcr.io/${{ steps.vars.outputs.owner }}/bentoml-datadriven:latest
