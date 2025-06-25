@@ -19,7 +19,8 @@ kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/re
 kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/ryu/ryu-deploy.yaml
 kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/ryu/ryu-service.yaml
 # Bento
-
+kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/bentoml/bentoml-deploy.yaml
+kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/bentoml/bentoml-service.yaml
 ## factory-floor
 
 

@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: bentoml
   namespace: datadriven
+  labels:
+    app: bentoml
 spec:
   replicas: 1
   selector:
