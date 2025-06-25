@@ -1,15 +1,16 @@
+from __future__ import annotations
 import bentoml
-from bentoml.io import JSON
 import pandas as pd
+from bentoml.sklearn import load_model
 
-rfc_runner = bentoml.sklearn.get("rfc_class:latest").to_runner()
+@bentoml.service()
+class RandomForestClassifierService:
+    def __init__(self):
+        self.model = load_model("rfc_class:latest")
 
-svc = bentoml.Service("random_forest_classifier", runners=[rfc_runner])
+    @bentoml.api
+    def predict(self, input_data: dict):
+        df = pd.DataFrame([input_data])
+        result = self.model.predict(df)
+        return result.tolist()
 
-input_spec = JSON.from_sample({"temp": 40.0, "out/in_encoded": 0, "Month": 12})
-
-
-@svc.api(input=input_spec, output=JSON())
-def predict(input_json):
-    df = pd.DataFrame([input_json])
-    return rfc_runner.predict.run(df)

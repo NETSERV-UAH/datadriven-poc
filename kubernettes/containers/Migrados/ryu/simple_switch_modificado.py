@@ -154,8 +154,10 @@ class SimpleSwitch13(app_manager.RyuApp):
 
     def query_bentoml(self, sensors_value):
         for sensor_info in sensors_value.values():
-            json_query = {"temp": sensor_info['temp'], "out/in_encoded": sensor_info['location'], "Month": sensor_info['month']}
+            
+            json_query = {"input_data": {"temp": sensor_info['temp'], "out/in_encoded": sensor_info['location'], "Month": sensor_info['month']}}
             response = requests.post(BENTO_URL, json=json_query, headers=BENTO_HEADERS)
+            
             sensor_info['bentoml_response'] = int(response.json()[0])
         return sensors_value
 
