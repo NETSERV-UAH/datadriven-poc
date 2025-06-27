@@ -64,8 +64,8 @@ spec:
                 - wget -q -O topo.py https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/factoryfloor/mininet-wifi/topo.py
                 - chmod +x mininet-install.sh
                 - ./mininet-install.sh
-                - echo 'export RYU_CONTROLLER_IP=ryu.datadriven.svc.cluster.local' >> /etc/profile.d/env.sh
-                - echo 'export RYU_CONTROLLER_PORT=6633' >> /etc/profile.d/env.sh
+                - echo 'export RYU_CONTROLLER_IP=192.168.100.11' >> /etc/profile.d/env.sh
+                - echo 'export RYU_CONTROLLER_PORT=30633' >> /etc/profile.d/env.sh
                 - echo 'export INFLUXDB_IP=192.168.100.11' >> /etc/profile.d/env.sh
                 - echo 'export INFLUXDB_PORT=32086' >> /etc/profile.d/env.sh
                 - echo 'export INFLUXDB_TOKEN=3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==' >> /etc/profile.d/env.sh

@@ -12,15 +12,32 @@ import datetime
 import json
 import requests
 import os
+from urllib.parse import urlparse, urlunparse
 
 IDLE_TIMEOUT_S = 30
 HARD_TIMEOUT_S = 30
 dropped_sensors = list()
 
-INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://192.168.56.12:8086")
+def resolve_dns_with_os(url):
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    port = parsed.port
+    try:
+        stream = os.popen(f"getent hosts {hostname}")
+        output = stream.read()
+        ip = output.split()[0]
+        new_netloc = f"{ip}:{port}" if port else ip
+        return urlunparse((parsed.scheme, new_netloc, parsed.path, '', '', ''))
+    except Exception as e:
+        return url  # fallback to original URL
+
+INFLUXDB_URL = resolve_dns_with_os(os.getenv("INFLUXDB_URL", "http://influxdb.datadriven.svc.cluster.local:8086"))
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==")
 INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "UAH")
 INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "iiot_data")
+
+BENTO_URL = resolve_dns_with_os(os.getenv("BENTO_URL", "http://bentoml.datadriven.svc.cluster.local:3001/predict"))
+BENTO_HEADERS = {"content-type": "application/json"}
 
 DATA_RANGE = "-1m"
 DATA_WINDOW = "1m"
@@ -35,12 +52,13 @@ from(bucket: "{INFLUXDB_BUCKET}")
     |> filter(fn: (r) => r["_field"] == "{DATA_FIELD}") 
     |> aggregateWindow(every: {DATA_WINDOW}, fn: {DATA_FUNCTION}, createEmpty: false)
     |> yield(name: "{DATA_FUNCTION}")
-    '''
+'''
 
-BENTO_URL = os.getenv("BENTO_URL", "http://192.168.56.13:3001/predict")
-BENTO_HEADERS = {"content-type": "application/json"}
-
-mac_sensors = {"00:00:00:00:01:01": "sensor-sta1", "00:00:00:00:01:02": "sensor-sta2", "00:00:00:00:01:03": "sensor-sta3"}
+mac_sensors = {
+    "00:00:00:00:01:01": "sensor-sta1",
+    "00:00:00:00:01:02": "sensor-sta2",
+    "00:00:00:00:01:03": "sensor-sta3"
+}
 
 class SimpleSwitch13(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -65,13 +83,11 @@ class SimpleSwitch13(app_manager.RyuApp):
     def add_flow(self, datapath, priority, match, actions, buffer_id=None, idle_timeout=0, hard_timeout=0):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         if buffer_id:
-            mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id, 
+            mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
                                     idle_timeout=idle_timeout, hard_timeout=hard_timeout,
-                                    priority=priority, match=match,
-                                    instructions=inst)
+                                    priority=priority, match=match, instructions=inst)
         else:
             mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
                                     idle_timeout=idle_timeout, hard_timeout=hard_timeout,
@@ -80,9 +96,6 @@ class SimpleSwitch13(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
-        if ev.msg.msg_len < ev.msg.total_len:
-            self.logger.debug("packet truncated: only %s of %s bytes",
-                              ev.msg.msg_len, ev.msg.total_len)
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
@@ -98,14 +111,11 @@ class SimpleSwitch13(app_manager.RyuApp):
         self.mac_to_port.setdefault(dpid, {})
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
         self.mac_to_port[dpid][src] = in_port
-        if dst in self.mac_to_port[dpid]:
-            out_port = self.mac_to_port[dpid][dst]
-        else:
-            out_port = ofproto.OFPP_FLOOD
+        out_port = self.mac_to_port[dpid].get(dst, ofproto.OFPP_FLOOD)
         actions = [parser.OFPActionOutput(out_port)]
-        idle_timeout = 0
-        hard_timeout = 0
-        if src in mac_sensors.keys() and eth.ethertype == ether_types.ETH_TYPE_IP:
+        idle_timeout = hard_timeout = 0
+
+        if src in mac_sensors and eth.ethertype == ether_types.ETH_TYPE_IP:
             ip = pkt.get_protocol(ipv4.ipv4)
             sensor_detected = mac_sensors[src]
             self.logger.info(f"Sensor {sensor_detected} IIOT packet found in {ip.src} -> {ip.dst} in port {in_port}")
@@ -119,28 +129,26 @@ class SimpleSwitch13(app_manager.RyuApp):
                     try:
                         respuesta = sensors_response[mac_sensors[src]]['bentoml_response']
                         self.logger.info(f"Sensor {sensor_detected} con respuesta {respuesta}")
-                        if sensors_response[mac_sensors[src]]["bentoml_response"] == 1:
+                        if respuesta == 1:
                             actions = []
                             dropped_sensors.append(src)
-                            self.logger.info(f"{sensors_response[mac_sensors[src]]} packet dropped since {sensors_response[mac_sensors[src]]['bentoml_response']} received")
-                    except KeyError as e:
+                            self.logger.info(f"{sensor_detected} packet dropped since response was 1")
+                    except KeyError:
                         self.logger.error(f"Aún no hay datos de {sensor_detected}")
-                    self.logger.info(f"La acción es la siguiente {actions}")
                 else:
-                    self.logger.info(f"Influxdb database still empty: {sensors_value}")
+                    self.logger.info("InfluxDB database aún vacía")
             else:
-                self.logger.info(f"Sensor {src} estaba dropeado y no se ha consultado influxdb")
+                self.logger.info(f"Sensor {src} estaba dropeado, no se consulta InfluxDB")
                 dropped_sensors.remove(src)
+
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src, eth_type=eth.ethertype)
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                self.add_flow(datapath, 1, match, actions, msg.buffer_id, idle_timeout=idle_timeout, hard_timeout=hard_timeout)
+                self.add_flow(datapath, 1, match, actions, msg.buffer_id, idle_timeout, hard_timeout)
                 return
             else:
-                self.add_flow(datapath, 1, match, actions, None, idle_timeout=idle_timeout, hard_timeout=hard_timeout)
-        data = None
-        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-            data = msg.data
+                self.add_flow(datapath, 1, match, actions, None, idle_timeout, hard_timeout)
+        data = msg.data if msg.buffer_id == ofproto.OFP_NO_BUFFER else None
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=data)
         datapath.send_msg(out)
@@ -150,15 +158,28 @@ class SimpleSwitch13(app_manager.RyuApp):
             result = self.influxdb_query_api.query(DATA_QUERY)
         except Exception as e:
             self.logger.error(f"Error en la recepción de la query: {e}")
-        sensors = {record.values.get("sensor_name"): {"name": record.values.get('sensor_name'), "temp": record.get_value(), "month":int(record.get_time().strftime('%m')), "location": record.values.get('location')} for table in result for record in table}
+            return {}
+        sensors = {
+            record.values.get("sensor_name"): {
+                "name": record.values.get("sensor_name"),
+                "temp": record.get_value(),
+                "month": int(record.get_time().strftime('%m')),
+                "location": record.values.get("location")
+            }
+            for table in result for record in table
+        }
         return sensors
 
     def query_bentoml(self, sensors_value):
         for sensor_info in sensors_value.values():
-            
-            json_query = {"input_data": {"temp": sensor_info['temp'], "out/in_encoded": sensor_info['location'], "Month": sensor_info['month']}}
+            json_query = {
+                "input_data": {
+                    "temp": sensor_info['temp'],
+                    "out/in_encoded": sensor_info['location'],
+                    "Month": sensor_info['month']
+                }
+            }
             response = requests.post(BENTO_URL, json=json_query, headers=BENTO_HEADERS)
-            
             sensor_info['bentoml_response'] = int(response.json()[0])
         return sensors_value
 
