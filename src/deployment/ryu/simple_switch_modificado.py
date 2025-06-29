@@ -62,6 +62,7 @@ BENTO_URL = "http://192.168.56.13:3001/predict"
 BENTO_HEADERS = {"content-type": "application/json"}
 
 mac_sensors = {"00:00:00:00:01:01": "sensor-sta1", "00:00:00:00:01:02": "sensor-sta2", "00:00:00:00:01:03": "sensor-sta3"}
+influxdb_ip = "192.168.56.12"
 
 class SimpleSwitch13(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -137,6 +138,11 @@ class SimpleSwitch13(app_manager.RyuApp):
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
+        try:
+            if self.mac_to_port[dpid][src] != in_port:
+                self.logger.info(f"Se ha detectado en {dpid} un paquete con origen {src} entrando por un puerto que no es el que debía {in_port}. Posible roaming")
+        except KeyError:
+            pass
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port
 
@@ -144,44 +150,32 @@ class SimpleSwitch13(app_manager.RyuApp):
             out_port = self.mac_to_port[dpid][dst]
         else:
             out_port = ofproto.OFPP_FLOOD
-
+        
         actions = [parser.OFPActionOutput(out_port)]
         # Pongo a 0 los timeout para que por defecto sean para siempre
         idle_timeout = 0
         hard_timeout = 0
-        if src in mac_sensors.keys() and eth.ethertype == ether_types.ETH_TYPE_IP:
+
+        if src in mac_sensors.keys() or dst in mac_sensors.keys(): # and eth.ethertype == ether_types.ETH_TYPE_IP and in_port == 1: El in_port == 1 es si quitamos el s1 para identificar si está directamente conectado o no
+            # Entro en esta parte tanto para arp como ip
             
-            # Estoy ante un paquete IP con origen los sensores
-            ip = pkt.get_protocol(ipv4.ipv4)
-            sensor_detected = mac_sensors[src]
-            # Añadir una comparación de ip.dst
-            self.logger.info(f"Sensor {sensor_detected} IIOT packet found in {ip.src} -> {ip.dst} in port {in_port}")
+            # Al ser de los equipos que van a estar moviéndose los pongo un temporizador
             # Idle_tiemout and hard_timeout set porque son paquetes de influxdb
             idle_timeout = IDLE_TIMEOUT_S
             hard_timeout = HARD_TIMEOUT_S
-            
-            self.logger.info(f"Sensores droppeados: {dropped_sensors}")
-            if src not in dropped_sensors:
-                # Query influxdb for sensors state (temperature mean)
-                sensors_value = self.query_influxdb()
-                if sensors_value:
-                    # Query bentoml for infer actions
-                    sensors_response = self.query_bentoml(sensors_value)
-                    try:
-                        respuesta = sensors_response[mac_sensors[src]]['bentoml_response']
-                        self.logger.info(f"Sensor {sensor_detected} con respuesta {respuesta}")
-                        if sensors_response[mac_sensors[src]]["bentoml_response"] == 1:
-                            actions = []
-                            dropped_sensors.append(src)
-                            self.logger.info(f"{sensors_response[mac_sensors[src]]} packet dropped since {sensors_response[mac_sensors[src]]['bentoml_response']} received")
-                    except KeyError as e:
-                        self.logger.error(f"Aún no hay datos de {sensor_detected}")
-                    self.logger.info(f"La acción es la siguiente {actions}")
-                else:
-                    self.logger.info(f"Influxdb database still empty: {sensors_value}")
-            else:
-                self.logger.info(f"Sensor {src} estaba dropeado y no se ha consultado influxdb")
-                dropped_sensors.remove(src)
+
+            # Si es ARP lo pongo para que haga FLOOD. De esta forma siempre va a hacer descubrimiento ARP
+            if eth.ethertype == ether_types.ETH_TYPE_ARP:
+                out_port = ofproto.OFPP_FLOOD
+                actions = [parser.OFPActionOutput(out_port)]
+            elif eth.ethertype == ether_types.ETH_TYPE_IP:
+                # Añadir una comparación de ip.dst (opcional)
+                sensor_detected = mac_sensors[src] if src in mac_sensors.keys() else mac_sensors[dst]
+                ip = pkt.get_protocol(ipv4.ipv4)
+                self.logger.info(f"Sensor {sensor_detected} IIOT packet found in {ip.src} -> {ip.dst} in port {in_port}")
+                actions = self.intercept_stations_traffic(src, sensor_detected, actions)
+
+        
         # install a flow to avoid packet_in next time
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src, eth_type=eth.ethertype) # Añado el ethertype para que me diferencie los ARP de los IP
@@ -192,13 +186,40 @@ class SimpleSwitch13(app_manager.RyuApp):
                 return
             else:
                 self.add_flow(datapath, 1, match, actions, None, idle_timeout=idle_timeout, hard_timeout=hard_timeout)
-        data = None
+        data = None  
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
 
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=data)
         datapath.send_msg(out)
+
+    def intercept_stations_traffic(self, src, sensor_detected, actions):
+        
+        self.logger.info(f"Sensores droppeados: {dropped_sensors}")
+        if src not in dropped_sensors:
+            # Query influxdb for sensors state (temperature mean)
+            sensors_value = self.query_influxdb()
+            if sensors_value:
+                # Query bentoml for infer actions
+                sensors_response = self.query_bentoml(sensors_value)
+                try:
+                    respuesta = sensors_response[mac_sensors[src]]['bentoml_response']
+                    self.logger.info(f"Sensor {sensor_detected} con respuesta {respuesta}")
+                    if sensors_response[mac_sensors[src]]["bentoml_response"] == 1:
+                        actions = []
+                        dropped_sensors.append(src)
+                        self.logger.info(f"{sensors_response[mac_sensors[src]]} packet dropped since {sensors_response[mac_sensors[src]]['bentoml_response']} received")
+                except KeyError:
+                    self.logger.error(f"Aún no hay datos de {sensor_detected}")
+                self.logger.info(f"La acción es la siguiente {actions}")
+            else:
+                self.logger.info(f"Influxdb database still empty: {sensors_value}")
+        else:
+            self.logger.info(f"Sensor {src} estaba dropeado y no se ha consultado influxdb")
+            dropped_sensors.remove(src)
+
+        return actions
 
     def query_influxdb(self):
         """

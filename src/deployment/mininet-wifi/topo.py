@@ -28,9 +28,9 @@ def scenario_basic():
                             port = 6633)
 
     info('*** Add UserAPs ***\n')
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="ssid-ap1", position='50,50,0')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:02', ssid="ssid-ap2", position='70,50,0')
-    ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="ssid-ap3", position='90,50,0')
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="ssid-ap1", position='50,50,0', dpid='1')
+    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:02', ssid="ssid-ap2", position='70,50,0', dpid='2')
+    ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="ssid-ap3", position='90,50,0', dpid='3')
 
     info('*** Add Sensors ***\n')
     sta1 = net.addStation('sta1', mac='00:00:00:00:01:01', ip='10.0.0.1/8', position='50,30,0')
