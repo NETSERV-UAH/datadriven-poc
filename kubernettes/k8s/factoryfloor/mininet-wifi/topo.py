@@ -1,6 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+# Código de la branch orientada a trabajar con docker en un entorno basado en kubernetes
+# Autor Javier Diaz-Fuentes
+
 import os
 from mn_wifi.net import Mininet_wifi
 from mininet.node import RemoteController
@@ -22,6 +25,10 @@ INFLUXDB_TOKEN = os.environ.get("INFLUXDB_TOKEN", "")
 sensors_out_in = {"sta1": 0, "sta2": 1, "sta3": 0}
 
 def scenario_basic():
+'''
+Definicion del escenario en mininet
+'''
+# En esta implementacion de usa OSVAP por que si no las conexiones no se realizan correctamente entre el AP y el controlador implementado con ryu en un contenedor
     net = Mininet_wifi(accessPoint=OVSAP, ac_method='llf', link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
@@ -36,9 +43,10 @@ def scenario_basic():
     )
 
     info('*** Add UserAPs ***\n')
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="ssid-ap1", position='50,50,0')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:02', ssid="ssid-ap2", position='70,50,0')
-    ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="ssid-ap3", position='90,50,0')
+    # Se añade el parámetro dpid - Herencia del branch de javi
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="ssid-ap1", position='50,50,0', dpid='1')
+    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:02', ssid="ssid-ap2", position='70,50,0', dpid='2')
+    ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="ssid-ap3", position='90,50,0', dpid='3')
 
     info('*** Add Sensors ***\n')
     sta1 = net.addStation('sta1', mac='00:00:00:00:01:01', ip='10.0.0.1/8', position='50,30,0')

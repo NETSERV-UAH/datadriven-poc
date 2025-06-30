@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
-import uuid, time, sys, os, requests
+import uuid, pickle
 import numpy as np
+import time
+import sys, subprocess
+import re
+import requests
 from datetime import datetime
 
 # Códigos de colores ANSI
@@ -34,15 +38,64 @@ class IIoT_Sensor(object):
         self.INFLUX_TOKEN = influx_token
         self.SENSOR_TOKEN = ""
 
+        # Verifica conectividad al inicio
         if not self.check_connectivity():
             print(f"{Color.RED}[ERROR]{Color.END} No connectivity to InfluxDB API ({self.INFLUX_URL_API}). Exiting.")
             sys.exit(1)
 
         self.run()
 
+    def scan_aps(self, interface):
+        try:
+            result = subprocess.check_output(["iw", "dev", interface, "scan"], stderr=subprocess.DEVNULL)
+            result = result.decode("utf-8")
+
+            aps = []
+            current_ap = {}
+
+            for line in result.splitlines():
+                line = line.strip()
+
+                if line.startswith("BSS"):
+                    if current_ap:
+                        aps.append(current_ap)
+                        current_ap = {}
+                    current_ap["associated"] = True if "associated" in line else False
+
+                elif "SSID:" in line:
+                    current_ap["SSID"] = line.split("SSID:")[1].strip()
+
+                elif "signal:" in line:
+                    signal = re.search(r"-?\d+\.?\d*", line)
+                    if signal:
+                        current_ap["Signal"] = float(signal.group())
+
+            if current_ap:
+                aps.append(current_ap)
+
+            return aps
+
+        except subprocess.CalledProcessError as e:
+            print(f"{Color.RED}[ERROR]{Color.END} Error scanning APs on interface {interface}: {e}")
+            return []
+
+    def connect_new_ap(self, aps, interface):
+        available_aps = [ap for ap in aps if ap.get('associated', False) == False]
+
+        if not available_aps:
+            print(f"{Color.GREEN}[INFO]{Color.END} No other APs available to connect.")
+        else:
+            best_ap = max(available_aps, key=lambda ap: ap.get('Signal', -100))
+            print(f"{Color.GREEN}[INFO]{Color.END} Connecting to AP '{best_ap['SSID']}' with signal {best_ap.get('Signal', 'N/A')}")
+            try:
+                subprocess.run(["iw", "dev", interface, "disconnect"], check=True)
+                subprocess.run(["iw", "dev", interface, "connect", best_ap['SSID']], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"{Color.RED}[ERROR]{Color.END} Failed to connect to AP '{best_ap['SSID']}': {e}")
+
     def check_connectivity(self, timeout=20):
         """Check if the API is reachable before proceeding with OAuth."""
-        health_url = self.INFLUX_URL_API.replace("/api/v2", "/health")
+        health_url = self.INFLUX_URL_API.rstrip("/") + "/health"
         start_time = time.time()
         while time.time() - start_time < timeout:
             try:
@@ -58,7 +111,7 @@ class IIoT_Sensor(object):
         return False
 
     def init_temperature(self):
-        return np.random.randint(29, 31) if self.location else np.random.randint(35, 42)
+        return np.random.randint(29,31) if self.location else np.random.randint(35,42)
 
     def update_temperature(self, new_temperature):
         self.temperature = float(new_temperature)
@@ -76,12 +129,20 @@ class IIoT_Sensor(object):
 
         try:
             response = requests.post(url, headers=headers, data=data, timeout=0.5)
+            response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            print(f"{Color.RED}[ERROR]{Color.END} Unable to reach database. Switch might be dropping packets: {e}")
-            sta = self.name.split('-')[1]
-            os.system(f"iw dev {sta}-wlan0 disconnect")
-            time.sleep(3)
-            os.system(f"iw dev {sta}-wlan0 connect ssid-ap2")
+            print(f"{Color.RED}[ERROR]{Color.END} Unable to reach database. Possible packet loss: {e}")
+            # Intentar reconexión wifi automáticamente
+            sta = self.name.split('-')[1] if '-' in self.name else self.name
+            iface = f"{sta}-wlan0"
+            available_aps = self.scan_aps(iface)
+            if available_aps:
+                self.connect_new_ap(available_aps, iface)
+            # Reintentar sin timeout
+            try:
+                response = requests.post(url, headers=headers, data=data)
+            except Exception as e2:
+                print(f"{Color.RED}[ERROR]{Color.END} Failed second write attempt: {e2}")
 
     def oauth_get_token(self):
         headers = {
@@ -106,7 +167,7 @@ class IIoT_Sensor(object):
                     "resource": {
                         "orgID": self.INFLUX_ORG_ID,
                         "type": "buckets",
-                        "name": "iiot_data"
+                        "name": self.INFLUX_BUCKET
                     }
                 }
             ]
@@ -114,6 +175,7 @@ class IIoT_Sensor(object):
 
         url = self.INFLUX_URL_API + "/authorizations"
         response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
         parsed_response = response.json()
         self.SENSOR_TOKEN = parsed_response["token"]
 
@@ -125,6 +187,7 @@ class IIoT_Sensor(object):
 
         url = self.INFLUX_URL_API + "/orgs"
         response = requests.get(url, headers=headers)
+        response.raise_for_status()
         parsed_response = response.json()
         self.INFLUX_ORG_ID = next((org["id"] for org in parsed_response["orgs"] if org["name"] == "UAH"), None)
 
@@ -136,20 +199,26 @@ class IIoT_Sensor(object):
 
         url = self.INFLUX_URL_API + "/buckets"
         response = requests.get(url, headers=headers)
+        response.raise_for_status()
         parsed_response = response.json()
         self.INFLUX_BUCKET = next((item['id'] for item in parsed_response['buckets'] if item['name'] == 'iiot_data'), None)
 
     def simulate_temperature_variation(self, time_interval, previous_temperature):
-        average_variation = 0.05 if self.location else -0.03
-        std_deviation = 0.01
+        if self.location:
+            average_variation = 0.05
+            std_deviation = 0.01
+        else:
+            average_variation = -0.03
+            std_deviation = 0.01
+        
         random_variation = np.random.normal(average_variation, std_deviation)
         new_variation = np.random.choice([-1, 1]) * 0.7 * random_variation + 0.3 * (self.temperature - previous_temperature)
-        return self.temperature + new_variation * time_interval
+        new_temperature = self.temperature + new_variation * time_interval
+        return new_temperature
 
     def run(self):
         previous_temperature = self.temperature
 
-        # Obtener orgID y bucketID automáticamente
         self.oauth_get_INFLUX_ORG_ID()
         self.oauth_get_INFLUX_BUCKET()
         self.oauth_get_token()
@@ -164,7 +233,14 @@ class IIoT_Sensor(object):
                 break
 
     def __str__(self):
-        return f"-----------------------------------------------------\nSensor ID: {self.uuid}\n\t[+] Name: {self.name}\n\t[+] Temperature: {self.temperature} °C\n\t[+] Date: {self.datetime}\n\t[+] Location: {'Inside' if self.location else 'Outside'}\n\t[+] Temperature Warning: {'Yes' if self.temperature_alert else 'No'}\n-----------------------------------------------------"
+        return (f"-----------------------------------------------------\n"
+                f"Sensor ID: {self.uuid}\n"
+                f"\t[+] Name: {self.name}\n"
+                f"\t[+] Temperature: {self.temperature} °C\n"
+                f"\t[+] Date: {self.datetime}\n"
+                f"\t[+] Location: {'Inside' if self.location else 'Outside'}\n"
+                f"\t[+] Temperature Warning: {'Yes' if self.temperature_alert else 'No'}\n"
+                f"-----------------------------------------------------")
 
 if __name__ == "__main__":
     if len(sys.argv) < 5:
@@ -176,5 +252,5 @@ if __name__ == "__main__":
     influx_ip = sys.argv[3]
     token = sys.argv[4]
 
-    sensor1 = IIoT_Sensor(name, location, 'temperatures.pkl', 2.0, influx_ip=influx_ip, influx_token=token)
+    sensor1 = IIoT_Sensor(name, location, 'temperatures.pkl', 2.0, influx
 
