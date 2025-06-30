@@ -25,9 +25,9 @@ INFLUXDB_TOKEN = os.environ.get("INFLUXDB_TOKEN", "")
 sensors_out_in = {"sta1": 0, "sta2": 1, "sta3": 0}
 
 def scenario_basic():
-'''
-Definicion del escenario en mininet
-'''
+    '''
+    Definicion del escenario en mininet
+    '''
 # En esta implementacion de usa OSVAP por que si no las conexiones no se realizan correctamente entre el AP y el controlador implementado con ryu en un contenedor
     net = Mininet_wifi(accessPoint=OVSAP, ac_method='llf', link=wmediumd, wmediumd_mode=interference)
 
