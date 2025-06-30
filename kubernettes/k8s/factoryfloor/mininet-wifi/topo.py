@@ -82,7 +82,7 @@ def scenario_basic():
     info('*** Start the IIoT Sensors ***\n')
     for sta in net.stations:
         sensor_location = sensors_out_in[sta.name]
-        influx_url = f"http://{INFLUXDB_IP}:{INFLUXDB_PORT}/api/v2"
+        influx_url = f"{INFLUXDB_IP}:{INFLUXDB_PORT}"
         sta.cmd(f'python3 iiot_sensor.py sensor-{sta.name} {sensor_location} {influx_url} {INFLUXDB_TOKEN} > {sta.name}.log & disown')
 
     info('*** RUN Mininet-Wifis CLI ***\n')
