@@ -30,11 +30,11 @@ import os
 from urllib.parse import urlparse, urlunparse
 
 def resolve_dns_with_os(url):
-'''
-Esta funcion resuelve los nombres de dominio por DNS. hace uso de os.system para ejecutar comandos de tipo getent en la terminal ya que si no no resuelve a coreDNS de kubernettes. en caso de que se resolviese este problema se podría hacer uso de gethostbyname de la liberia socket
+    '''
+    Esta funcion resuelve los nombres de dominio por DNS. hace uso de os.system para ejecutar comandos de tipo getent en la terminal ya que si no no resuelve a coreDNS de kubernettes. en caso de que se resolviese este problema se podría hacer uso de gethostbyname de la liberia socket
 
-Se le proporcionan URLs completas en formato string y las devuelve sustituyendo eñ nomre de domino excusivamente
-'''
+    Se le proporcionan URLs completas en formato string y las devuelve sustituyendo eñ nomre de domino excusivamente
+    '''
     parsed = urlparse(url)
     hostname = parsed.hostname
     port = parsed.port
@@ -208,10 +208,10 @@ class SimpleSwitch13(app_manager.RyuApp):
         return actions
 
     def query_influxdb(self):
-    '''
-    Funcion para hacer llamadas a la BBDD de influx alojada en la URL INFLUXDB_URL
-    debe tener el token funcionando y estar correctamente configurada    
-    '''
+        '''
+        Funcion para hacer llamadas a la BBDD de influx alojada en la URL INFLUXDB_URL
+        debe tener el token funcionando y estar correctamente configurada    
+        '''
         try:
             result = self.influxdb_query_api.query(DATA_QUERY)
         except Exception as e:
