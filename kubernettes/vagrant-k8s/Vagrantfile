@@ -31,8 +31,9 @@ Vagrant.configure("2") do |config|
         n.vm.provision "dashboard", type: "shell", path: "scripts/dashboard.sh", run: "never"
         n.vm.provision "kubevirt", type: "shell", path: "scripts/kubevirt.sh", run: "never"
         n.vm.provision "metrics-server", type: "shell", path: "scripts/metrics-server.sh", run: "never"
+        n.vm.provision "pre-process", type: "shell", path: "scripts/preprocess.sh", run: "never"
         n.vm.provision "project", type: "shell", path: "scripts/project.sh", run: "never"
-
+        n.vm.provision "post-process", type: "shell", path: "scripts/postprocess.sh", run: "never"
       else
         n.vm.provision "worker", type: "shell", path: "scripts/worker-deploy.sh", run: "never"
       end

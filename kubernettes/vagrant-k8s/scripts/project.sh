@@ -1,12 +1,10 @@
 #!/bin/bash
 
 sudo -u vagrant -i bash <<'EOF'
+
 #################
 ## Datadriven ##
 ##################
-
-## ns ##
-kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/datadriven-ns.yaml
 
 ## influxdb ##
 kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/influxdb/influxdb-secrets.yaml
@@ -30,15 +28,4 @@ kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/re
 kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/bentoml/bentoml-service.yaml
 kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/datadriven/bentoml/bentoml-hpa.yaml
 
-###################
-## factory-floor ##
-###################
-
-## ns ##
-kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/factoryfloor/ff-ns.yaml
-
-## mininet-vm ##
-kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/factoryfloor/ff-vm-disk.yaml
-kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/factoryfloor/ff-vm.yaml
-kubectl apply -f https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/k8s/factoryfloor/ff-vm-ssh-service.yaml
 EOF

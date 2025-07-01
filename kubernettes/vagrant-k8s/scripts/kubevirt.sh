@@ -8,4 +8,3 @@ kubectl apply -f https://github.com/kubevirt/containerized-data-importer/release
 kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-cr.yaml
 kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
 EOF
-
