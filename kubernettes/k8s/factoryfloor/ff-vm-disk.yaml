@@ -6,7 +6,7 @@ metadata:
 spec:
   source:
     http:
-      url: https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img
+      url: http://10.0.0.104:5000/download/ubuntu22.04-mininet-wifi.img
   pvc:
     accessModes:
       - ReadWriteOnce
