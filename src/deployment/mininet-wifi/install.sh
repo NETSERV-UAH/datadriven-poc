@@ -11,7 +11,10 @@ sudo apt-get update
 sudo apt-get install -y git
 
 # Clonamos el repositorio de Mininet
-git clone https://github.com/intrig-unicamp/mininet-wifi
+# git clone https://github.com/intrig-unicamp/mininet-wifi
+
+# Como me estaba dando problemas el último commit de mn_wifi hago un clone de mi repo, así lo aprovecho para P4 también
+git clone https://github.com/JavierDiazF/mininet-wifi.git
 
 # Lanzamos el script de instalación (Openflow 1.3 - Ryu - Wireshark dissector)
 sudo ./mininet-wifi/util/install.sh -3Wlfnv

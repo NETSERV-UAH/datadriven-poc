@@ -22,17 +22,51 @@ class Color:
     UNDERLINE = '\033[4m'
     END = '\033[0m'
 
+    # Estas variaciones están sacadas del dataset.
+    # Se han tomado calculando el salto de un registro con el siguiente para cada machine ID
+    # El salto de tiempo medio de cada intervalo es de unos 50 minutos
+    # Entonces su simulación en segundos como se va a hacer aquí es algo irreal
+    # Otra opción sería hacer un ajuste de si la variación es en 50 minutos, en 10 segundos será tal.
+statistics_variables = {
+    'temperature': {'steps_mean': 0.001, 'std_dev': 24.477},
+    'vibration': {'steps_mean': 2.25e-05, 'std_dev': 1.993},
+    'power_consumption': {'steps_mean': 0.0003, 'std_dev': 3.459},
+    'network_latency': {'steps_mean': -0.0003, 'std_dev': 19.95},
+    'packet_loss': {'steps_mean': 0.0003, 'std_dev': 2.0384},
+    'quality_control_defect_rate': {'steps_mean': -7.974e-05, 'std_dev': 4.0752},
+    'production_speed_units': {'steps_mean': -0.0023, 'std_dev': 184.136},
+    'predictive_maintenance_score': {'steps_mean': -3.116e-05, 'std_dev': 0.409},
+    'error_rate': {'steps_mean': 0.0001, 'std_dev': 6.1185}
+}
+
+DATASET_INTERVAL = 3000 # 50min Intervalo entre registros del dataset
+
 class IIoT_Sensor(object):
     """
-		Class to define IIoT Sensor
-	"""
-    def __init__(self, name, inside=True, temperature_path="temperatures.pkl", interval=1.0):
+                Class to define IIoT Sensor
+        """
+    def __init__(self, name, operation_mode, interval=1.0):
         self.uuid = uuid.uuid4()
         self.name = name
-        self.location = inside
         self.interval = interval
-        self.temperature_path = temperature_path
-        self.temperature = float(self.init_temperature())
+        # Variables
+        #self.operation_mode = np.random.uniform()
+        #self.temperature = float(self.init_temperature())
+
+        # Inicializo los valores basandome en la distribución uniforme mostrada en Kaggle
+        self.variables = {
+            'temperature': np.random.uniform(30, 90),
+            'vibration': np.random.uniform(0.1, 5),
+            'power_consumption': np.random.uniform(1.5, 10),
+            'network_latency':  np.random.uniform(1, 50),
+            'packet_loss': np.random.uniform(0, 5),
+            'quality_control_defect_rate': np.random.uniform(0, 10),
+            'production_speed_units': np.random.uniform(50, 500),
+            'predictive_maintenance_score': np.random.uniform(0, 1),
+            'error_rate': np.random.uniform(0, 15)
+        }
+        self.operation_mode = operation_mode
+
         self.datetime = datetime.now()
         self.temperature_alert = False
         self.INFLUX_URL_API = "http://192.168.56.12:8086/api/v2"
@@ -109,17 +143,11 @@ class IIoT_Sensor(object):
             time.sleep(2)
         return False
 
+    def update_variables(self, new_variables):
 
-    def init_temperature(self):
-
-        return np.random.randint(29,31) if self.location else np.random.randint(35,42)
-
-
-    def update_temperature(self, new_temperature):
-
-        self.temperature = float(new_temperature)
+        self.variables = new_variables
         self.datetime = datetime.now()
-        print(f"{Color.GREEN}[UPDATE]{Color.END}[{Color.BLUE}{self.name}{Color.END}] Sensor temperature updated to {self.temperature} °C at {self.datetime}.")
+        print(f"{Color.GREEN}[UPDATE]{Color.END}[{Color.BLUE}{self.name}{Color.END}] Sensor variables updated to {self.variables} at {self.datetime}.")
 
         # Enviamos la temp a la bbdd
         headers = {
@@ -128,7 +156,7 @@ class IIoT_Sensor(object):
             "Accept": "application/json"
         }
 
-        data = f"tempSensors,sensor_name={self.name},sensor_id={self.uuid},location={int(self.location)} temp={self.temperature} {time.time_ns()}"
+        data = f"tempSensors,sensor_name={self.name},sensor_id={self.uuid} operation_mode={self.operation_mode},temperature={self.variables['temperature']},vibration={self.variables['vibration']},power_consumption={self.variables['power_consumption']},network_latency={self.variables['network_latency']},packet_loss={self.variables['packet_loss']},quality_control_defect_rate={self.variables['quality_control_defect_rate']},production_speed_units={self.variables['production_speed_units']},predictive_maintenance_score={self.variables['predictive_maintenance_score']},error_rate={self.variables['error_rate']} {time.time_ns()}"
 
         # Realiza la solicitud POST
         url = self.INFLUX_URL_API + f"/write?org={self.INFLUX_ORG_ID}&bucket={self.INFLUX_BUCKET}&precision=ns"
@@ -155,7 +183,7 @@ class IIoT_Sensor(object):
             "Content-type": "application/json"
         }
 
-        # Define los datos 
+        # Define los datos
         data = {
             "status": "active",
             "description": f"iott-device-{self.name}",
@@ -199,7 +227,7 @@ class IIoT_Sensor(object):
             "Content-type": "application/json"
         }
 
-         # Define los datos 
+         # Define los datos
         data = {
             "name": "UAH"
         }
@@ -223,7 +251,7 @@ class IIoT_Sensor(object):
             "Content-type": "application/json"
         }
 
-         # Define los datos 
+         # Define los datos
         data = {
             "org": "UAH",
             "name": "iiot_data"
@@ -240,35 +268,41 @@ class IIoT_Sensor(object):
         self.INFLUX_BUCKET = next((item['id'] for item in parsed_response['buckets'] if item['name'] == 'iiot_data'), None)
 
 
-    def simulate_temperature_variation(self, time_interval, previous_temperature):
+    def simulate_variables_variation(self, time_interval, previous_variables):
         """
         Simulates realistic temperature variation based on time interval and location,
         considering inertia from previous variations.
         """
-        # Define las variaciones promedio y las desviaciones estándar según la ubicación
-        if self.location:
-            average_variation = 0.05
-            std_deviation = 0.01
-        else:
-            average_variation = -0.03
-            std_deviation = 0.01
-        
-        # Calcula la variación aleatoria basada en una distribución normal
-        random_variation = np.random.normal(average_variation, std_deviation)
 
-        # Calcula la nueva variación como la suma de la variación aleatoria y la inercia anterior
-        new_variation = np.random.choice([-1, 1]) * 0.7 * random_variation + 0.3 * (self.temperature - previous_temperature)
+        # Factor de conversión de la desviación típica al time_interval real (el del dataset es 50 minutos)
+        factor_std_dev = np.sqrt(time_interval/DATASET_INTERVAL)
 
-        # Calcula la nueva temperatura
-        new_temperature = self.temperature + new_variation * time_interval
+        new_variables = dict()
+        for variable in self.variables:
+            # Calcula la variación aleatoria basada en una distribución normal
+            random_variation = np.random.normal(statistics_variables[variable]['steps_mean'], statistics_variables[variable]['std_dev']*factor_std_dev)
 
-        return new_temperature
+            # Calcula la nueva variación como la suma de la variación aleatoria y la inercia anterior
+            new_variation = np.random.choice([-1, 1]) * 0.7 * random_variation + 0.3 * (self.variables[variable] - previous_variables[variable])
+
+            # Calcula el nuevo valor
+            new_variables[variable] = self.variables[variable] + new_variation * time_interval
+            if variable in ['packet_loss', 'quality_control_defect_rate', 'error_rate']:
+                # Son variables en porcentaje por lo que las limito
+                new_variables[variable] = np.clip(new_variables[variable], 0, 100)
+            elif variable == 'predictive_maintenance_score':
+                # Esta variable en el dataset va de 0 a 1 así que también la limito
+                new_variables[variable] = np.clip(new_variables[variable], 0, 1)
+            elif variable in ['vibration', 'power_consumption', 'network_latency','production_speed_units']:
+                new_variables[variable] = np.clip(new_variables[variable], 0, None)
+
+        return new_variables
 
 
     def run(self):
 
-        previous_temperature = self.temperature
-        
+        previous_variables = self.variables
+
         # Oauth process
         self.oauth_get_INFLUX_ORG_ID()
         self.oauth_get_INFLUX_BUCKET()
@@ -276,22 +310,14 @@ class IIoT_Sensor(object):
 
         while(True):
             try:
-                
-                self.update_temperature(self.simulate_temperature_variation(self.interval, previous_temperature))
-                previous_temperature = self.temperature
+
+                self.update_variables(self.simulate_variables_variation(self.interval, previous_variables))
+                previous_variables = self.variables
                 time.sleep(self.interval)
             except (KeyboardInterrupt, SystemExit):
                 print("Exiting...")
                 break
 
-
-    def __str__(self):
-        return f"-----------------------------------------------------\nSensor ID: {self.uuid}\n\t[+] Name: {self.name}\n\t[+] Temperature: {self.temperature} °C\n\t[+] Date: {self.datetime}\n\t[+] Location: {'Inside' if self.location else 'Outside'}\n\t[+] Temperature Warning: {'Yes' if self.temperature_alert else 'No'}\n-----------------------------------------------------"
-
-
-	
-
-
 if __name__ == "__main__":
-    #sensor1 = IIoT_Sensor(sys.argv[1], False, 'temperatures.pkl', 2.0)
-    sensor1 = IIoT_Sensor(sys.argv[1], int(sys.argv[2]) if len(sys.argv) >= 3 else False, 'temperatures.pkl', 2.0)
+    # Nombre de la estación, time_interval
+    sensor1 = IIoT_Sensor(sys.argv[1], int(sys.argv[2]) if len(sys.argv) >= 3 else 0, 2.0)

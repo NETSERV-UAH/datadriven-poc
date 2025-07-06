@@ -38,21 +38,19 @@ INFLUXDB_URL = "http://192.168.56.12:8086"
 INFLUXDB_TOKEN = "3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA=="
 INFLUXDB_ORG = "UAH"
 INFLUXDB_BUCKET = "iiot_data"
-#INFLUXDB_BUCKET = "_monitoring"
 
 
 # InfluxDB data
 DATA_RANGE = "-1m"
 DATA_WINDOW = "1m"
 DATA_MEASUREMENT = "tempSensors"
-DATA_FIELD = "temp"
 DATA_FUNCTION = "mean"
 
 DATA_QUERY = f'''
-from(bucket: "{INFLUXDB_BUCKET}") 
-    |> range(start: {DATA_RANGE}) 
-    |> filter(fn: (r) => r["_measurement"] == "{DATA_MEASUREMENT}") 
-    |> filter(fn: (r) => r["_field"] == "{DATA_FIELD}") 
+from(bucket: "{INFLUXDB_BUCKET}")
+    |> range(start: {DATA_RANGE})
+    |> filter(fn: (r) => r["_measurement"] == "{DATA_MEASUREMENT}")
+    |> filter(fn: (r) => r["_field"] == "error_rate" or r["_field"] == "network_latency" or r["_field"] == "operation_mode" or r["_field"] == "packet_loss" or r["_field"] == "power_consumption" or r["_field"] == "predictive_maintenance_score" or r["_field"] == "production_speed_units" or r["_field"] == "quality_control_defect_rate" or r["_field"] == "temperature" or r["_field"] == "vibration")
     |> aggregateWindow(every: {DATA_WINDOW}, fn: {DATA_FUNCTION}, createEmpty: false)
     |> yield(name: "{DATA_FUNCTION}")
     '''
@@ -101,7 +99,7 @@ class SimpleSwitch13(app_manager.RyuApp):
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
         if buffer_id:
-            mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id, 
+            mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
                                     idle_timeout=idle_timeout, hard_timeout=hard_timeout,
                                     priority=priority, match=match,
                                     instructions=inst)
@@ -137,6 +135,7 @@ class SimpleSwitch13(app_manager.RyuApp):
         self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+
         """
         try:
             if self.mac_to_port[dpid][src] != in_port:
@@ -151,7 +150,7 @@ class SimpleSwitch13(app_manager.RyuApp):
             out_port = self.mac_to_port[dpid][dst]
         else:
             out_port = ofproto.OFPP_FLOOD
-        
+
         actions = [parser.OFPActionOutput(out_port)]
         # Pongo a 0 los timeout para que por defecto sean para siempre
         idle_timeout = 0
@@ -159,7 +158,7 @@ class SimpleSwitch13(app_manager.RyuApp):
 
         if src in mac_sensors.keys() or dst in mac_sensors.keys(): # and eth.ethertype == ether_types.ETH_TYPE_IP and in_port == 1: El in_port == 1 es si quitamos el s1 para identificar si está directamente conectado o no
             # Entro en esta parte tanto para arp como ip
-            
+
             # Al ser de los equipos que van a estar moviéndose los pongo un temporizador
             # Idle_tiemout and hard_timeout set porque son paquetes de influxdb
             idle_timeout = IDLE_TIMEOUT_S
@@ -180,7 +179,6 @@ class SimpleSwitch13(app_manager.RyuApp):
                 if (src in mac_sensors.keys() and in_port == 1) or (dst in mac_sensors.keys() and out_port == 1):
                     actions = self.intercept_stations_traffic(src, sensor_detected, actions)
 
-        
         # install a flow to avoid packet_in next time
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src, eth_type=eth.ethertype) # Añado el ethertype para que me diferencie los ARP de los IP
@@ -191,7 +189,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 return
             else:
                 self.add_flow(datapath, 1, match, actions, None, idle_timeout=idle_timeout, hard_timeout=hard_timeout)
-        data = None  
+        data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
 
@@ -200,7 +198,7 @@ class SimpleSwitch13(app_manager.RyuApp):
         datapath.send_msg(out)
 
     def intercept_stations_traffic(self, src, sensor_detected, actions):
-        
+
         self.logger.info(f"Sensores droppeados: {dropped_sensors}")
         if src not in dropped_sensors:
             # Query influxdb for sensors state (temperature mean)
@@ -211,7 +209,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 try:
                     respuesta = sensors_response[mac_sensors[src]]['bentoml_response']
                     self.logger.info(f"Sensor {sensor_detected} con respuesta {respuesta}")
-                    if sensors_response[mac_sensors[src]]["bentoml_response"] == 1:
+                    if sensors_response[mac_sensors[src]]["bentoml_response"] == 1: # Solo si está low
                         actions = []
                         dropped_sensors.append(src)
                         self.logger.info(f"{sensors_response[mac_sensors[src]]} packet dropped since {sensors_response[mac_sensors[src]]['bentoml_response']} received")
@@ -236,8 +234,20 @@ class SimpleSwitch13(app_manager.RyuApp):
             result = self.influxdb_query_api.query(DATA_QUERY)
         except Exception as e:
             self.logger.error(f"Error en la recepción de la query: {e}")
+        sensors = dict()
+        for table in result:
+            for record in table:
+                # Pruebo si existe el diccionariom, si no, lo creo
+                try:
+                    sensors[record.values.get("sensor_name")][record.get_field()] = record.get_value()
+                # Si no existe la entrada del diccionario con el nombre del sensor del que se han recibido los registros, se crea
+                except Exception as e:
+                    sensors[record.values.get("sensor_name")] = dict()
+                    sensors[record.values.get("sensor_name")]["name"] = record.values.get("sensor_name")
+                    sensors[record.values.get("sensor_name")]["month"] = int(record.get_time().strftime('%m'))
+                    # Una vez creado el diccionario ya puedo guardar el valor
+                    sensors[record.values.get("sensor_name")][record.get_field()] = record.get_value()
 
-        sensors = {record.values.get("sensor_name"): {"name": record.values.get('sensor_name'), "temp": record.get_value(), "month":int(record.get_time().strftime('%m')), "location": record.values.get('location')} for table in result for record in table}
 
         #self.logger.info(f"Sensors state: {sensors}")
         return sensors
@@ -246,11 +256,23 @@ class SimpleSwitch13(app_manager.RyuApp):
         """
             Function to query bentoml and see if any action is required
         """
-        
+
         for sensor_info in sensors_value.values():
-            json_query = {"temp": sensor_info['temp'], "out/in_encoded": sensor_info['location'], "Month": sensor_info['month']}
+            json_query = {
+                "Operation_Mode": sensor_info['operation_mode'],
+                "Temperature_C": sensor_info['temperature'],
+                "Vibration_Hz": sensor_info['vibration'],
+                "Power_Consumption_kW": sensor_info['power_consumption'],
+                "Network_Latency_ms": sensor_info['network_latency'],
+                "Packet_Loss_%": sensor_info['packet_loss'],
+                "Quality_Control_Defect_Rate_%": sensor_info['quality_control_defect_rate'],
+                "Production_Speed_units_per_hr": sensor_info['production_speed_units'],
+                "Predictive_Maintenance_Score": sensor_info['predictive_maintenance_score'],
+                "Error_Rate_%": sensor_info['error_rate'],
+                "Month": sensor_info['month']
+                }
             #self.logger.info(f"Sensor {sensor_info['name']}: {json_query}")
-            
+
             response = requests.post(BENTO_URL, json=json_query, headers=BENTO_HEADERS)
             sensor_info['bentoml_response'] = int(response.json()[0])
             #self.logger.info(f"Response: {sensor_info['bentoml_response']}")
