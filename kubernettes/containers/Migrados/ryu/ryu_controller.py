@@ -194,17 +194,19 @@ class SimpleSwitch13(app_manager.RyuApp):
     def query_bentoml(self, sensors_value):
         for sensor in sensors_value.values():
             json_query = {
-                "Operation_Mode": sensor['operation_mode'],
-                "Temperature_C": sensor['temperature'],
-                "Vibration_Hz": sensor['vibration'],
-                "Power_Consumption_kW": sensor['power_consumption'],
-                "Network_Latency_ms": sensor['network_latency'],
-                "Packet_Loss_%": sensor['packet_loss'],
-                "Quality_Control_Defect_Rate_%": sensor['quality_control_defect_rate'],
-                "Production_Speed_units_per_hr": sensor['production_speed_units'],
-                "Predictive_Maintenance_Score": sensor['predictive_maintenance_score'],
-                "Error_Rate_%": sensor['error_rate'],
-                "Month": sensor['month']
+                "input_data": {
+                    "Operation_Mode": sensor['operation_mode'],
+                    "Temperature_C": sensor['temperature'],
+                    "Vibration_Hz": sensor['vibration'],
+                    "Power_Consumption_kW": sensor['power_consumption'],
+                    "Network_Latency_ms": sensor['network_latency'],
+                    "Packet_Loss_%": sensor['packet_loss'],
+                    "Quality_Control_Defect_Rate_%": sensor['quality_control_defect_rate'],
+                    "Production_Speed_units_per_hr": sensor['production_speed_units'],
+                    "Predictive_Maintenance_Score": sensor['predictive_maintenance_score'],
+                    "Error_Rate_%": sensor['error_rate'],
+                    "Month": sensor['month']
+                }
             }
             try:
                 resp = requests.post(BENTO_URL, json=json_query, headers=BENTO_HEADERS)
