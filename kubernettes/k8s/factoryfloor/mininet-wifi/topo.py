@@ -28,7 +28,7 @@ def scenario_basic():
     '''
     Definición del escenario en Mininet-WiFi
     '''
-    net = Mininet_wifi(accessPoint=OVSAP, ac_method='llf', link=wmediumd, wmediumd_mode=interference)
+    net = Mininet_wifi(accessPoint=OVSAP, ac_method='llf') #, link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
 
@@ -52,8 +52,8 @@ def scenario_basic():
         )
 
     info('*** Add Stations and Links ***\n')
-    sensors_out_in = {}
     sta_counter = 1
+    stations = []
 
     if STAS_PER_AP > 0:
         for ap_idx, ap_name in enumerate(AP_NAMES, start=1):
@@ -63,16 +63,24 @@ def scenario_basic():
                 sta_ip = f'10.0.0.{sta_counter}/8'
                 sta_mac = f'00:00:00:00:{ap_idx:02x}:{sta_idx:02x}'
                 station = net.addStation(sta_name, ip=sta_ip, mac=sta_mac)
-                net.addLink(station, ap)
-
-                # Alternar 0 y 1 para sensor_location
-                sensors_out_in[sta_name] = (sta_counter + 1) % 2
+                stations.append((station, ap_name))
                 sta_counter += 1
 
-    info("*** Configuring nodes\n")
+    info("*** Configuring Propagation Model\n")
+    net.setPropagationModel(model="logDistance", exp=3.5)
+
+    info("*** Configuring nodes ***\n")
     net.configureNodes()
     net.addNAT().configDefault()
+    
+    info("*** Configuring Links ***\n")
 
+    for station, ap_name in stations:
+        net.addLink(station, aps[ap_name])
+    
+    net.addLink(aps["ap1"], aps["ap2"])
+    net.addLink(aps["ap2"], aps["ap3"])
+    
     info('\n*** Build it ***\n')
     net.build()
 
@@ -87,10 +95,9 @@ def scenario_basic():
     if STAS_PER_AP > 0:
         info('*** Start the IIoT Sensors ***\n')
         for sta in net.stations:
-            sensor_location = sensors_out_in[sta.name]
             influx_url = f"{INFLUXDB_IP}:{INFLUXDB_PORT}"
             operation_mode = sta_counter % 3
-            sta.cmd(f'python3 sensor_script.py sensor-{sta.name} {operation_mode} {influx_url} {INFLUXDB_TOKEN} > {sta.name}.log & disown')
+            sta.cmd(f'python3 iiot_sensor.py sensor-{sta.name} {operation_mode} {influx_url} {INFLUXDB_TOKEN} > {sta.name}.log & disown')
     else:
         info('*** No stations to start sensors on (STAS_PER_AP=0) ***\n')
 
