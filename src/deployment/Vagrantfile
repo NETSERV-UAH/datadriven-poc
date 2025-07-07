@@ -20,6 +20,9 @@ def $stderr.write string
     $out_file.flush
 end
 
+# Dataset temperaturas o dataset 6G Manufacturing
+dataset = "manufacturing_6G" # Temperatura = "iiot-temp" // 6G Manufacturing = "manufacturing_6G"
+
 Vagrant.configure("2") do |config|
 
   # Habilitar el x11
@@ -34,12 +37,21 @@ Vagrant.configure("2") do |config|
     factory_config.vm.provider "virtualbox" do |vb|
       vb.memory = 4096 # 2GB de RAM
       vb.cpus = 3      # 2 cores
+      vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
     end
     # Ejecutar el script mininet-wifi/install.sh en FactoryFloor
     factory_config.vm.provision "shell", path: "mininet-wifi/install.sh"
     factory_config.vm.provision "file", source: "mininet-wifi/topo.py", destination: "/home/vagrant/topo.py"
     factory_config.vm.provision "shell", path: "iiot_sensor/install.sh"
-    factory_config.vm.provision "file", source: "iiot_sensor/iiot_sensor.py", destination: "/home/vagrant/iiot_sensor.py"
+    if dataset == "iiot-temp"
+      factory_config.vm.provision "file", source: "iiot_sensor/iiot_sensor.py", destination: "/home/vagrant/iiot_sensor.py"
+    elsif dataset == "manufacturing_6G"
+      factory_config.vm.provision "file", source: "iiot_sensor/iiot_sensor_manufacturing6g.py", destination: "/home/vagrant/iiot_sensor.py"
+    else
+      s.inline = "echo 'No se ha definido correctamente el dataset que se va a usar"
+    end
+      #factory_config.vm.provision "shell", path: "P4/install_mnwifi.sh"
+    #factory_config.vm.provision "file", source: "P4/p4topology.py", destination: "/home/vagrant/p4topology.py"
   end
 
   # Define las configuraciones para Edge
@@ -50,12 +62,27 @@ Vagrant.configure("2") do |config|
     edge_config.vm.provider "virtualbox" do |vb|
       vb.memory = 2048 # 2GB de RAM
       vb.cpus = 2      # 2 cores
+      vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
     end
     # Ejecutar el script ryu/install.sh en Edge y el de InfluxDB
     edge_config.vm.provision "shell", path: "ryu/install.sh"
     edge_config.vm.provision "shell", path: "influxdb/install.sh"
     edge_config.vm.provision "shell", path: "influxdb/config.sh"
-    edge_config.vm.provision"file", source: "ryu/simple_switch_modificado.py", destination: "/home/vagrant/simple_switch_modificado.py"
+    if dataset == "iiot-temp"
+      edge_config.vm.provision "file", source: "ryu/simple_switch_modificado.py", destination: "/home/vagrant/simple_switch_modificado.py"
+    elsif dataset == "manufacturing_6G"
+      edge_config.vm.provision "file", source: "ryu/simple_switch_modificado_manufacturing6g.py", destination: "/home/vagrant/simple_switch_modificado.py"
+    else
+      s.inline = "echo 'No se ha definido correctamente el dataset que se va a usar"
+    end
+    edge_config.vm.provision "shell", inline: "mkdir /home/vagrant/p4controllerd /home/vagrant/p4utils"
+    edge_config.vm.provision "shell", path: "P4/install_controller.sh"
+    edge_config.vm.provision "file", source: "P4/p4controller.py", destination: "/home/vagrant/p4controller.py"
+    edge_config.vm.provision "file", source: "P4/Makefile_utils", destination: "/home/vagrant/Makefile_utils"
+    edge_config.vm.provision "file", source: "P4/Makefile_controller", destination: "/home/vagrant/Makefile_controller"
+    edge_config.vm.provision "shell", inline: "mv /home/vagrant/p4controller.py /home/vagrant/p4controllerd/p4controller.py"
+    edge_config.vm.provision "shell", inline: "mv /home/vagrant/Makefile_utils /home/vagrant/p4utils/Makefile"
+    edge_config.vm.provision "shell", inline: "mv /home/vagrant/Makefile_controller /home/vagrant/p4controllerd/Makefile"
   end
 
   # Define las configuraciones para Cloud
@@ -66,15 +93,29 @@ Vagrant.configure("2") do |config|
     cloud_config.vm.provider "virtualbox" do |vb|
       vb.memory = 2048 # 2GB de RAM
       vb.cpus = 2      # 2 cores
+      vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
     end
     # Ejecutar el script grafana/install.sh en Cloud y el de BentoML
     cloud_config.vm.provision "file", source: "grafana/influxdb_datasource.yaml", destination: "/home/vagrant/grafana/influxdb_datasource.yaml"
+    cloud_config.vm.provision "file", source: "grafana/influxdb_dashboard.yaml", destination: "/home/vagrant/grafana/influxdb_dashboard.yaml"
+    cloud_config.vm.provision "file", source: "grafana/dashboard.json", destination: "/home/vagrant/grafana/dashboard.json"
+    cloud_config.vm.provision "file", source: "grafana/dashboard_6g.json", destination: "/home/vagrant/grafana/dashboard_6g.json"
     cloud_config.vm.provision "shell", path: "grafana/install.sh"
-    cloud_config.vm.provision "file", source: "bentoml/service.py", destination: "/home/vagrant/service.py"
-    cloud_config.vm.provision "file", source: "bentoml/train.py", destination: "/home/vagrant/train.py"
+    # BentoML
+    if dataset == "iiot-temp"
+      cloud_config.vm.provision "file", source: "bentoml/service.py", destination: "/home/vagrant/service.py"
+      cloud_config.vm.provision "file", source: "bentoml/train.py", destination: "/home/vagrant/train.py"
+      cloud_config.vm.provision "file", source: "bentoml/dataset/IIOT-temp-warn-max.csv", destination: "/home/vagrant/dataset/IIOT-temp-warn-max.csv"
+    elsif dataset == "manufacturing_6G"
+      cloud_config.vm.provision "file", source: "bentoml/manufacturing6gmodel/service6gdataset.py", destination: "/home/vagrant/service.py"
+      cloud_config.vm.provision "file", source: "bentoml/manufacturing6gmodel/train6gdataset.py", destination: "/home/vagrant/train.py"
+      cloud_config.vm.provision "file", source: "bentoml/dataset/manufacturing_6G_dataset.csv", destination: "/home/vagrant/dataset/manufacturing_6G_dataset.csv"
+    else
+      s.inline = "echo 'No se ha definido correctamente el dataset que se va a usar"
+    end
     cloud_config.vm.provision "file", source: "bentoml/requirements.txt", destination: "/home/vagrant/requirements.txt"
     cloud_config.vm.provision "file", source: "bentoml/bentofile.yaml", destination: "/home/vagrant/bentofile.yaml"
-    cloud_config.vm.provision "file", source: "bentoml/dataset/IIOT-temp-warn-max.csv", destination: "/home/vagrant/dataset/IIOT-temp-warn-max.csv"
+    # Install.sh
     cloud_config.vm.provision "shell", path: "bentoml/install.sh"
   end
 

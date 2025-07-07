@@ -4,7 +4,8 @@ import uuid, pickle
 import numpy as np
 #import pandas as pd
 import time
-import sys
+import sys, os, subprocess
+import re
 import requests
 from datetime import datetime
 
@@ -47,6 +48,51 @@ class IIoT_Sensor(object):
 
         self.run()
 
+    def scan_aps(self, interface):
+        try:
+            result = subprocess.check_output(["iw", "dev", interface, "scan"], stderr=subprocess.DEVNULL)
+            result = result.decode("utf-8")
+
+            aps = []
+            current_ap = {}
+
+            for line in result.splitlines():
+                line = line.strip()
+
+                if line.startswith("BSS"):
+                    if current_ap:
+                        aps.append(current_ap)
+                        current_ap={}
+                    current_ap["associated"] = True if "associated" in line else False
+
+                elif "SSID:" in line:
+                    current_ap["SSID"] = line.split("SSID:")[1].strip()
+
+                elif "signal:" in line:
+                    signal = re.search(r"-?\d+\.?\d*", line)
+                    if signal:
+                        current_ap["Signal"] = float(signal.group())
+
+            if current_ap:
+                aps.append(current_ap)
+
+            return aps
+
+        except subprocess.CalledProcessError as e:
+            print("Error al ejecutar iw scan:", e)
+            return []
+
+    def connect_new_ap(self, aps, interface):
+        available_aps = [ap for ap in aps if ap['associated'] == False]
+
+        if not available_aps:
+            print(f"{Color.GREEN}[INFO]{Color.END} No other aps available.")
+        else:
+            best_ap = max(available_aps, key=lambda ap: ap['Signal'])
+            print(f"{Color.GREEN}[INFO]{Color.END} Conecting to {best_ap['SSID']}")
+            subprocess.run(["iw", "dev", interface, "disconnect"], check=True)
+            subprocess.run(["iw", "dev", interface, "connect", best_ap['SSID']], check=True)
+
     def check_connectivity(self, timeout=20):
         """Check if the API is reachable before proceeding with OAuth."""
         start_time = time.time()
@@ -86,8 +132,19 @@ class IIoT_Sensor(object):
 
         # Realiza la solicitud POST
         url = self.INFLUX_URL_API + f"/write?org={self.INFLUX_ORG_ID}&bucket={self.INFLUX_BUCKET}&precision=ns"
-        response = requests.post(url, headers=headers, data=data)
-
+        try:
+            response = requests.post(url, headers=headers, data=data, timeout=0.5)
+        except requests.exceptions.RequestException as e:
+            print(f"{Color.RED}[ERROR]{Color.END} Unable to reach database. Switch might be dropping packets: {e}")
+            sta = self.name.split('-')[1]
+            # Desconectamos la estación para que haga rel associate to otro ap
+            available_aps = self.scan_aps(f"{sta}-wlan0")
+            print(available_aps)
+            self.connect_new_ap(available_aps, f"{sta}-wlan0")
+            try:
+                response = requests.post(url, headers=headers, data=data, timeout = 0.5) # Le quito el timeout porque si no lo pilla, lo detecto luego en el siguiente mensaje
+            except requests.exceptions.RequestException as e:
+                print(f"{Color.RED}[ERROR]{Color.END} No se ha podido conectar aún\n{e}\n")
 
 
     def oauth_get_token(self):
@@ -236,4 +293,5 @@ class IIoT_Sensor(object):
 
 
 if __name__ == "__main__":
-    sensor1 = IIoT_Sensor(sys.argv[1], False, 'temperatures.pkl', 2.0)
+    #sensor1 = IIoT_Sensor(sys.argv[1], False, 'temperatures.pkl', 2.0)
+    sensor1 = IIoT_Sensor(sys.argv[1], int(sys.argv[2]) if len(sys.argv) >= 3 else False, 'temperatures.pkl', 2.0)
