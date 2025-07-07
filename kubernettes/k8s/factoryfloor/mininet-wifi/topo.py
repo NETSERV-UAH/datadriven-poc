@@ -7,32 +7,31 @@
 import os
 from mn_wifi.net import Mininet_wifi
 from mininet.node import RemoteController
-from mn_wifi.node import UserAP
 from mn_wifi.node import OVSAP
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI
 from mn_wifi.link import wmediumd
 from mn_wifi.wmediumdConnector import interference
 
-# Configuración por variables de entorno
+# Variables de entorno
 RYU_CONTROLLER_IP = os.environ.get("RYU_CONTROLLER_IP", "FAIL_ADDR")
 RYU_CONTROLLER_PORT = int(os.environ.get("RYU_CONTROLLER_PORT", "6633"))
 INFLUXDB_IP = os.environ.get("INFLUXDB_IP", "FAIL_ADDR")
-INFLUXDB_PORT = int(os.environ.get("INFLUXDB_PORT", "8086"))  # ← corregido: Influx suele usar 8086
+INFLUXDB_PORT = int(os.environ.get("INFLUXDB_PORT", "8086"))
 INFLUXDB_TOKEN = os.environ.get("INFLUXDB_TOKEN", "")
+STAS_PER_AP = int(os.environ.get("STAS_PER_AP", "1"))  # Puede ser 0
 
-# Set sta1 and sta3 as outside and sta2 as inside
-sensors_out_in = {"sta1": 0, "sta2": 1, "sta3": 0}
+# Nombres de APs definidos estáticamente
+AP_NAMES = ["ap1", "ap2", "ap3"]
 
 def scenario_basic():
     '''
-    Definicion del escenario en mininet
+    Definición del escenario en Mininet-WiFi
     '''
-# En esta implementacion de usa OSVAP por que si no las conexiones no se realizan correctamente entre el AP y el controlador implementado con ryu en un contenedor
     net = Mininet_wifi(accessPoint=OVSAP, ac_method='llf', link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    
+
     info('*** Add Controller (Ryu) ***\n')
     c0 = net.addController(
         name='c0',
@@ -42,30 +41,37 @@ def scenario_basic():
         port=RYU_CONTROLLER_PORT
     )
 
-    info('*** Add UserAPs ***\n')
-    # Se añade el parámetro dpid - Herencia del branch de javi
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="ssid-ap1", position='50,50,0', dpid='1')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:02', ssid="ssid-ap2", position='70,50,0', dpid='2')
-    ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="ssid-ap3", position='90,50,0', dpid='3')
+    info('*** Add Access Points ***\n')
+    aps = {}
+    for i, ap_name in enumerate(AP_NAMES, start=1):
+        aps[ap_name] = net.addAccessPoint(
+            ap_name,
+            mac=f'00:00:00:00:00:0{i}',
+            ssid=f"ssid-{ap_name}",
+            dpid=str(i)
+        )
 
-    info('*** Add Sensors ***\n')
-    sta1 = net.addStation('sta1', mac='00:00:00:00:01:01', ip='10.0.0.1/8', position='50,30,0')
-    sta2 = net.addStation('sta2', mac='00:00:00:00:01:02', ip='10.0.0.2/8', position='70,30,0')
-    sta3 = net.addStation('sta3', mac='00:00:00:00:01:03', ip='10.0.0.3/8', position='90,30,0')
+    info('*** Add Stations and Links ***\n')
+    sensors_out_in = {}
+    sta_counter = 1
 
-    info("*** Configuring Propagation Model\n")
-    net.setPropagationModel(model="logDistance", exp=3.5)
+    if STAS_PER_AP > 0:
+        for ap_idx, ap_name in enumerate(AP_NAMES, start=1):
+            ap = aps[ap_name]
+            for sta_idx in range(1, STAS_PER_AP + 1):
+                sta_name = f'sta_{ap_idx}_{sta_idx}'
+                sta_ip = f'10.0.0.{sta_counter}/8'
+                sta_mac = f'00:00:00:00:{ap_idx:02x}:{sta_idx:02x}'
+                station = net.addStation(sta_name, ip=sta_ip, mac=sta_mac)
+                net.addLink(station, ap)
+
+                # Alternar 0 y 1 para sensor_location
+                sensors_out_in[sta_name] = (sta_counter + 1) % 2
+                sta_counter += 1
 
     info("*** Configuring nodes\n")
     net.configureNodes()
     net.addNAT().configDefault()
-    
-    info('*** Add links ***\n')
-    net.addLink(sta1, ap1)
-    net.addLink(sta2, ap2)
-    net.addLink(sta3, ap3)
-    net.addLink(ap1, ap2)
-    net.addLink(ap2, ap3)
 
     info('\n*** Build it ***\n')
     net.build()
@@ -74,18 +80,21 @@ def scenario_basic():
     for controller in net.controllers:
         controller.start()
 
-    info('*** Set controllers ***\n')
-    ap1.start([c0])
-    ap2.start([c0])
-    ap3.start([c0])
+    info('*** Start APs with controller ***\n')
+    for ap in aps.values():
+        ap.start([c0])
 
-    info('*** Start the IIoT Sensors ***\n')
-    for sta in net.stations:
-        sensor_location = sensors_out_in[sta.name]
-        influx_url = f"{INFLUXDB_IP}:{INFLUXDB_PORT}"
-        sta.cmd(f'python3 iiot_sensor.py sensor-{sta.name} {sensor_location} {influx_url} {INFLUXDB_TOKEN} > {sta.name}.log & disown')
+    if STAS_PER_AP > 0:
+        info('*** Start the IIoT Sensors ***\n')
+        for sta in net.stations:
+            sensor_location = sensors_out_in[sta.name]
+            influx_url = f"{INFLUXDB_IP}:{INFLUXDB_PORT}"
+            operation_mode = sta_counter % 3
+            sta.cmd(f'python3 sensor_script.py sensor-{sta.name} {operation_mode} {influx_url} {INFLUXDB_TOKEN} > {sta.name}.log & disown')
+    else:
+        info('*** No stations to start sensors on (STAS_PER_AP=0) ***\n')
 
-    info('*** RUN Mininet-Wifis CLI ***\n')
+    info('*** RUN Mininet-WiFi CLI ***\n')
     CLI(net)
 
     net.stop()
@@ -93,3 +102,4 @@ def scenario_basic():
 if __name__ == '__main__':
     setLogLevel('info')
     scenario_basic()
+

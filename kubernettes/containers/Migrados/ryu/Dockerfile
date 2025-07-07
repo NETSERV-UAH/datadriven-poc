@@ -13,7 +13,7 @@ RUN git clone https://github.com/davidcawork/ryu.git ryu
 WORKDIR /root/ryu
 
 RUN python3 setup.py install
-COPY simple_switch_modificado.py /root/
+COPY ryu_controller.py /root/
 
-CMD ["ryu-manager", "/root/simple_switch_modificado.py"]
+CMD ["ryu-manager", "/root/ryu_controller.py"]
 

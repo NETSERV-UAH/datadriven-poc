@@ -66,6 +66,7 @@ spec:
                 - echo 'export INFLUXDB_IP=192.168.100.11' >> /etc/profile.d/env.sh
                 - echo 'export INFLUXDB_PORT=32086' >> /etc/profile.d/env.sh
                 - echo 'export INFLUXDB_TOKEN=3hv3m8nphSlHRbVbKQ7o5Hrm0S4FhLDhu8WWGt9abXHQ26Ked4hGDSRqtZsYC-hc2gS9snCLjN5p9OnoYBeRYA==' >> /etc/profile.d/env.sh
+                - echo 'export STAS_PER_AP= 10' >> /etc/profile.d/env.sh
                 - sudo chmod +x /etc/profile.d/env.sh
                 - source /etc/profile.d/env.sh
                 - python3 topo.py
