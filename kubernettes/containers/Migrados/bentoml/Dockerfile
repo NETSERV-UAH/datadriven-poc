@@ -12,7 +12,7 @@ COPY service.py .
 COPY bentofile.yaml .
 
 RUN pip install -r requirements.txt
-RUN mkdir -p dataset && wget -O dataset/IIOT-temp-warn-max.csv https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/bentoml/dataset/IIOT-temp-warn-max.csv
+RUN mkdir -p dataset && wget -O dataset/manufacturing_6G_dataset.csv https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/bentoml/dataset/manufacturing_6G_dataset.csv
 RUN python3 train.py
 
 CMD ["bentoml", "serve", "-p3001", "."]
