@@ -128,9 +128,7 @@ class IIoT_Sensor:
             "Accept": "application/json"
         }
 
-        data = f"tempSensors,sensor_name={self.name},sensor_id={self.uuid},operation_mode={self.operation_mode} " + ",".join(
-            f"{k}={v}" for k, v in self.variables.items()
-        ) + f" {time.time_ns()}"
+        data = f"tempSensors,sensor_name={self.name},sensor_id={self.uuid} operation_mode={self.operation_mode},temperature={self.variables['temperature']},vibration={self.variables['vibration']},power_consumption={self.variables['power_consumption']},network_latency={self.variables['network_latency']},packet_loss={self.variables['packet_loss']},quality_control_defect_rate={self.variables['quality_control_defect_rate']},production_speed_units={self.variables['production_speed_units']},predictive_maintenance_score={self.variables['predictive_maintenance_score']},error_rate={self.variables['error_rate']} {time.time_ns()}"
 
         url = f"{self.INFLUX_URL_API}/write?org={self.INFLUX_ORG_ID}&bucket={self.INFLUX_BUCKET}&precision=ns"
         try:
