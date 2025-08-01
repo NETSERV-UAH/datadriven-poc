@@ -21,6 +21,7 @@ def $stderr.write string
 end
 
 # Dataset temperaturas o dataset 6G Manufacturing
+# Si la idea es usar P4, Poner manufacturing_6G pues es el único que soporta
 dataset = "manufacturing_6G" # Temperatura = "iiot-temp" // 6G Manufacturing = "manufacturing_6G"
 
 Vagrant.configure("2") do |config|
@@ -50,8 +51,10 @@ Vagrant.configure("2") do |config|
     else
       s.inline = "echo 'No se ha definido correctamente el dataset que se va a usar"
     end
-      #factory_config.vm.provision "shell", path: "P4/install_mnwifi.sh"
-    #factory_config.vm.provision "file", source: "P4/p4topology.py", destination: "/home/vagrant/p4topology.py"
+    factory_config.vm.provision "shell", path: "P4/Factory/install_mnwifi.sh"
+    factory_config.vm.provision "file", source: "P4/Factory/p4topo.py", destination: "/home/vagrant/p4topo.py"
+    factory_config.vm.provision "file", source: "P4/Factory/basic.json", destination: "/home/vagrant/basic.json"
+    factory_config.vm.provision "file", source: "P4/Factory/p4runtime", destination: "/home/vagrant/p4runtime"
   end
 
   # Define las configuraciones para Edge
@@ -76,11 +79,13 @@ Vagrant.configure("2") do |config|
       s.inline = "echo 'No se ha definido correctamente el dataset que se va a usar"
     end
     edge_config.vm.provision "shell", inline: "mkdir /home/vagrant/p4controllerd /home/vagrant/p4utils"
-    edge_config.vm.provision "shell", path: "P4/install_controller.sh"
-    edge_config.vm.provision "file", source: "P4/p4controller.py", destination: "/home/vagrant/p4controller.py"
-    edge_config.vm.provision "file", source: "P4/Makefile_utils", destination: "/home/vagrant/Makefile_utils"
-    edge_config.vm.provision "file", source: "P4/Makefile_controller", destination: "/home/vagrant/Makefile_controller"
-    edge_config.vm.provision "shell", inline: "mv /home/vagrant/p4controller.py /home/vagrant/p4controllerd/p4controller.py"
+    edge_config.vm.provision "shell", path: "P4/Edge/install_controller.sh"
+    edge_config.vm.provision "file", source: "P4/Edge/topop4controller.py", destination: "/home/vagrant/topop4controller.py"
+    edge_config.vm.provision "file", source: "P4/Edge/basic.p4", destination: "/home/vagrant/basic.p4"
+    edge_config.vm.provision "file", source: "P4/Edge/Makefile_utils", destination: "/home/vagrant/Makefile_utils"
+    edge_config.vm.provision "file", source: "P4/Edge/Makefile_controller", destination: "/home/vagrant/Makefile_controller"
+    edge_config.vm.provision "shell", inline: "mv /home/vagrant/topop4controller.py /home/vagrant/p4controllerd/topop4controller.py"
+    edge_config.vm.provision "shell", inline: "mv /home/vagrant/basic.p4 /home/vagrant/p4controllerd/basic.p4"
     edge_config.vm.provision "shell", inline: "mv /home/vagrant/Makefile_utils /home/vagrant/p4utils/Makefile"
     edge_config.vm.provision "shell", inline: "mv /home/vagrant/Makefile_controller /home/vagrant/p4controllerd/Makefile"
   end

@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier,
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, recall_score
 
 RANDOM_STATE = 33 # Semilla
 np.random.seed(RANDOM_STATE)
@@ -74,6 +74,7 @@ if __name__ == "__main__":
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
+        recall = recall_score(y_test, y_pred)
         results[name] = accuracy
         print(f"{name}: {accuracy:.4f}")
         print(classification_report(y_test, y_pred))
