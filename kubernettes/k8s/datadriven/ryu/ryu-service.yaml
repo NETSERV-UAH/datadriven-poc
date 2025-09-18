@@ -8,7 +8,14 @@ spec:
   selector:
     app: ryu
   ports:
-    - name: http
+    - name: openflow
       port: 6633
       targetPort: 6633
       nodePort: 30633
+      protocol: TCP
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30808
+      protocol: TCP
+

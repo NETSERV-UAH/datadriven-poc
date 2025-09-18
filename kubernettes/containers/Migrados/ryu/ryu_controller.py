@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Ryu Controller - Kubernetes-ready version with dynamic sensor mapping
+# Ryu Controller - Kubernetes-ready version with dynamic sensor mapping + Healthcheck
 # Autor: Javier Diaz-Fuentes
 
 from ryu.base import app_manager
@@ -20,7 +20,10 @@ import os
 import re
 from urllib.parse import urlparse, urlunparse
 
-# Utilidad para resolver DNS con getent (Kubernetes)
+from ryu.app.wsgi import WSGIApplication, ControllerBase, route
+from webob import Response
+
+
 def resolve_dns_with_os(url):
     parsed = urlparse(url)
     hostname = parsed.hostname
@@ -34,12 +37,11 @@ def resolve_dns_with_os(url):
     except Exception:
         return url
 
-# Timeout de flows
+
 IDLE_TIMEOUT_S = 30
 HARD_TIMEOUT_S = 30
 dropped_sensors = list()
 
-# Configuración por entorno
 INFLUXDB_URL = resolve_dns_with_os(os.getenv("INFLUXDB_URL", "http://192.168.56.12:8086"))
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "...")
 INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "UAH")
@@ -48,7 +50,6 @@ INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "iiot_data")
 BENTO_URL = resolve_dns_with_os(os.getenv("BENTO_URL", "http://192.168.56.13:3001/predict"))
 BENTO_HEADERS = {"content-type": "application/json"}
 
-# Consulta a InfluxDB
 DATA_RANGE = "-1m"
 DATA_WINDOW = "1m"
 DATA_MEASUREMENT = "tempSensors"
@@ -65,8 +66,16 @@ from(bucket: "{INFLUXDB_BUCKET}")
 
 mac_sensor_pattern = re.compile(r"00:00:00:00:(\d\d):(\d\d)")
 
+
+class HealthController(ControllerBase):
+    @route('health', '/healthz', methods=['GET'])
+    def health(self, req, **kwargs):
+        return Response(content_type='text/plain', body='ok')
+
+
 class SimpleSwitch13(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+    _CONTEXTS = {'wsgi': WSGIApplication}
 
     def __init__(self, *args, **kwargs):
         super(SimpleSwitch13, self).__init__(*args, **kwargs)
@@ -74,6 +83,9 @@ class SimpleSwitch13(app_manager.RyuApp):
         self.influxdb_query_api = self.client_influxdb.query_api()
         self.mac_to_port = {}
         self.mac_sensors = {}
+
+        wsgi = kwargs['wsgi']
+        wsgi.register(HealthController, {})
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -113,7 +125,6 @@ class SimpleSwitch13(app_manager.RyuApp):
         self.mac_to_port.setdefault(dpid, {})
         self.mac_to_port[dpid][src] = in_port
 
-        # Registrar MAC como sensor si aplica
         for mac in (src, dst):
             if mac not in self.mac_sensors:
                 match = mac_sensor_pattern.match(mac)
@@ -209,7 +220,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 }
             }
             try:
-                resp = requests.post(BENTO_URL, json=json_query, headers=BENTO_HEADERS)
+                resp = requests.post(BENTO_URL, json=json_query, headers=BENTO_HEADERS, timeout=2)
                 sensor['bentoml_response'] = int(resp.json()[0])
             except Exception as e:
                 self.logger.error(f"Error al consultar BentoML para {sensor['name']}: {e}")
