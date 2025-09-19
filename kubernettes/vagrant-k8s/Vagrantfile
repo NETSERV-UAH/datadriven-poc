@@ -17,8 +17,8 @@ Vagrant.configure("2") do |config|
                    libvirt__dhcp_enabled: false
 
       n.vm.provider :libvirt do |v|
-        v.memory = 16384
-        v.cpus = 8
+        v.memory = 32768
+        v.cpus = 10
       end
 
       # Esta se ejecuta automáticamente al hacer `vagrant up`
@@ -34,6 +34,7 @@ Vagrant.configure("2") do |config|
         n.vm.provision "pre-process", type: "shell", path: "scripts/preprocess.sh", run: "never"
         n.vm.provision "project", type: "shell", path: "scripts/project.sh", run: "never"
         n.vm.provision "post-process", type: "shell", path: "scripts/postprocess.sh", run: "never"
+        n.vm.provision "token", type: "shell", path: "scripts/create-token.sh", run: "never"
       else
         n.vm.provision "worker", type: "shell", path: "scripts/worker-deploy.sh", run: "never"
       end

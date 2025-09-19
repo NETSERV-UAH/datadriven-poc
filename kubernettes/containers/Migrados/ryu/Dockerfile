@@ -15,5 +15,7 @@ WORKDIR /root/ryu
 RUN python3 setup.py install
 COPY ryu_controller.py /root/
 
-CMD ["ryu-manager", "/root/ryu_controller.py"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"]
 

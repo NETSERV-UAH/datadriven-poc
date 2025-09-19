@@ -15,5 +15,7 @@ RUN pip install -r requirements.txt
 RUN mkdir -p dataset && wget -O dataset/manufacturing_6G_dataset.csv https://raw.githubusercontent.com/NETSERV-UAH/datadriven-poc/refs/heads/k8s-deploy-datadriven/kubernettes/containers/Migrados/bentoml/dataset/manufacturing_6G_dataset.csv
 RUN python3 train.py
 
-CMD ["bentoml", "serve", "-p3001", "."]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"]
 
