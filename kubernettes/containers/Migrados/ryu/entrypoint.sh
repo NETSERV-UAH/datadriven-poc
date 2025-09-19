@@ -2,4 +2,4 @@
 
 set -e
 
-ryu-manager /root/ryu_controller.py
+exec ryu-manager /root/ryu_controller.py
