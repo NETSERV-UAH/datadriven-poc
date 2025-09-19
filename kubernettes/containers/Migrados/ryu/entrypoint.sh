@@ -2,4 +2,6 @@
 
 set -e
 
-exec ryu-manager /root/ryu_controller.py
+ryu-manager /root/ryu_controller.py &
+
+wait
